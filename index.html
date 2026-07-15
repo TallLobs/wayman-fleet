@@ -335,8 +335,8 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         <div class="eyebrow">Fleet Status — Live</div>
         <div class="filter-rows">
           <div class="filterset" id="filter-status">
-            <button class="fbtn active" data-v="all">All</button>
-            <button class="fbtn" data-v="air">Airborne</button>
+            <button class="fbtn" data-v="all">All</button>
+            <button class="fbtn active" data-v="air">Airborne</button>
             <button class="fbtn" data-v="gnd">Ground</button>
           </div>
           <div class="filterset" id="filter-type">
@@ -353,7 +353,8 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         </div>
         <div class="helper" style="margin-top: 10px;">
           A parked aircraft with the master off transmits nothing — "No signal" usually means it's on the ramp.
-          Tap a row to select that aircraft in the calculator and center the map on it.
+          "Ghosts" shows the last position received before an aircraft went quiet — useful when one went silent
+          away from KHWO. Tap a row to select that aircraft in the calculator and center the map on it.
         </div>
       </div>
     </section>
@@ -383,15 +384,16 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
             <div class="helper" id="fuel-note" style="color: var(--warn); display: none;"></div>
           </div>
           <div class="form-group">
-            <label style="display:flex; justify-content:space-between; align-items:center;">
+            <label style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
               Fuel Burn
-              <select id="inp-burn-unit" style="width: auto; padding: 2px 6px; font-size: 11px; border: none; background: transparent; cursor: pointer; color: var(--accent);">
-                <option value="gal">gal</option>
-                <option value="lb">lb</option>
-              </select>
+              <span class="filterset" id="burn-unit-toggle">
+                <button type="button" class="fbtn active" data-u="lb">lb</button>
+                <button type="button" class="fbtn" data-u="gal">gal</button>
+              </span>
             </label>
+            <input type="hidden" id="inp-burn-unit" value="lb">
             <input type="number" id="inp-burn" min="0" step="0.1">
-            <div class="helper">Converted: <span id="burn-converted" class="num">0.0</span> <span id="burn-converted-unit">lb</span></div>
+            <div class="helper">Converted: <span id="burn-converted" class="num">0.0</span> <span id="burn-converted-unit">gal</span></div>
           </div>
           <div class="form-group">
             <label>Flight Conditions</label>
@@ -1266,6 +1268,14 @@ function initCalcApp() {
     inp.addEventListener('input', calculate);
   });
 
+  document.querySelectorAll('#burn-unit-toggle .fbtn').forEach(b => {
+    b.onclick = () => {
+      document.getElementById('inp-burn-unit').value = b.dataset.u;
+      document.querySelectorAll('#burn-unit-toggle .fbtn').forEach(x => x.classList.toggle('active', x === b));
+      calculate();
+    };
+  });
+
   calculate();
 }
 
@@ -1283,7 +1293,7 @@ let fleetFetchOk = null;
 let fleetFetchTime = null;
 
 const BLOCK_MS = 1.8 * 3600000;
-let fltStatus = 'all';
+let fltStatus = 'air';
 let fltType = 'all';
 let showGhosts = false;
 let focusTail = null;
@@ -1333,10 +1343,11 @@ function statusOf(hex) {
       detail: (rec.alt || 0) + ' ft · ' + Math.round(rec.gs || 0) + ' kt · ' + whereText(rec),
     };
   }
+  const dHome = haversineNm(KHWO.lat, KHWO.lon, rec.lat, rec.lon);
   return {
     cls: age < 6 * 3600000 ? 'stale' : 'off',
     label: 'Last seen ' + ago(age),
-    detail: 'last known ' + whereText(rec),
+    detail: dHome < 3 ? 'likely back at KHWO' : 'last known ' + whereText(rec),
   };
 }
 
@@ -1483,6 +1494,10 @@ function renderFleetList() {
   const cnt = document.getElementById('filter-count');
   const filtered = focusTail || fltStatus !== 'all' || fltType !== 'all';
   cnt.innerText = filtered ? shown + '/' + FLEET.length + ' shown' : '';
+  if (!shown) {
+    document.getElementById('list-172').innerHTML =
+      '<div class="helper">Nothing matches this filter right now — tap "All".</div>';
+  }
 }
 
 function applyFleetFilters(status, type) {
