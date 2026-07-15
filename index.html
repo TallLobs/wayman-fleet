@@ -227,6 +227,37 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   color: var(--slate); font: 400 11px var(--mono); flex: 1; min-width: 120px;
   text-align: right; font-variant-numeric: tabular-nums;
 }
+
+/* ---------- watch panel ---------- */
+.watch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.watch-tail { font: 400 24px/1 var(--serif); }
+.watch-status { font: 500 11px var(--mono); color: var(--sub); margin-top: 4px; letter-spacing: 0.03em; }
+.focusbtn {
+  background: transparent; color: var(--sub); border: 1px solid var(--powder);
+  border-radius: 0; padding: 6px 14px; font: 600 10.5px var(--sans);
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+}
+.focusbtn:hover { border-color: var(--accent); color: var(--ink); }
+.focusbtn.active { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+.watch-barwrap { margin-top: 12px; }
+.watch-bar { height: 4px; background: var(--powder); }
+.watch-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 1s linear; }
+.watch-bar-fill.over { background: var(--warn); }
+.watch-verdict { font: 500 10px var(--mono); color: var(--slate); margin-top: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* ---------- fleet filters ---------- */
+.filter-rows { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 10px; }
+.filterset { display: flex; }
+.fbtn {
+  background: transparent; color: var(--slate); border: 1px solid var(--powder); border-right: none;
+  border-radius: 0; padding: 5px 10px; font: 600 9.5px var(--sans);
+  letter-spacing: 0.07em; text-transform: uppercase; cursor: pointer;
+}
+.filterset .fbtn:last-child { border-right: 1px solid var(--powder); }
+.fbtn:hover { color: var(--ink); }
+.fbtn.active { background: var(--surface2); color: var(--ink); }
+.filter-count { font: 500 10px var(--mono); color: var(--slate); }
+.statusbar button.active { background: var(--surface2); color: var(--ink); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -237,11 +268,9 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
     <div class="brand-sub">KHWO · W&amp;B · PERFORMANCE · LIVE MAP</div>
   </div>
   <nav class="jumpnav">
-    <a href="#sec-calc">Calculator</a>
     <a href="#sec-wb">W&amp;B Table</a>
     <a href="#sec-perf">Performance</a>
     <a href="#sec-map">Map</a>
-    <a href="#sec-fleet">Fleet</a>
   </nav>
 </div>
 
@@ -280,16 +309,43 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   <div class="layout">
     <section class="map-pane" id="sec-map" data-screen-label="Live map + fleet">
       <div class="card">
+        <div class="watch-row">
+          <div>
+            <div class="watch-tail" id="watch-tail">—</div>
+            <div class="watch-status" id="watch-status">Pick a tail number to watch it here.</div>
+          </div>
+          <button id="btn-focus" class="focusbtn">Focus</button>
+        </div>
+        <div class="watch-barwrap" id="watch-barwrap" style="display: none;">
+          <div class="watch-bar"><div class="watch-bar-fill" id="watch-bar-fill"></div></div>
+          <div class="watch-verdict" id="watch-verdict"></div>
+        </div>
+      </div>
+      <div class="card">
         <div class="statusbar">
           <span class="dot" id="src-dot"></span>
           <span id="src-text">Connecting to live data…</span>
           <button id="btn-refresh">Refresh</button>
           <button id="btn-fit">Fit fleet</button>
+          <button id="btn-ghosts" title="Show last-known positions of aircraft that stopped transmitting">Ghosts</button>
         </div>
       </div>
       <div id="map"></div>
       <div class="card" id="sec-fleet">
         <div class="eyebrow">Fleet Status — Live</div>
+        <div class="filter-rows">
+          <div class="filterset" id="filter-status">
+            <button class="fbtn active" data-v="all">All</button>
+            <button class="fbtn" data-v="air">Airborne</button>
+            <button class="fbtn" data-v="gnd">Ground</button>
+          </div>
+          <div class="filterset" id="filter-type">
+            <button class="fbtn active" data-v="all">All</button>
+            <button class="fbtn" data-v="172">C-172</button>
+            <button class="fbtn" data-v="152">C-152</button>
+          </div>
+          <span class="filter-count" id="filter-count"></span>
+        </div>
         <div class="fleet-scroll">
           <div class="fleet-list" id="list-172"></div>
           <div style="height: 10px;"></div>
@@ -1226,6 +1282,12 @@ let fleetCache = (() => {
 let fleetFetchOk = null;
 let fleetFetchTime = null;
 
+const BLOCK_MS = 1.8 * 3600000;
+let fltStatus = 'all';
+let fltType = 'all';
+let showGhosts = false;
+let focusTail = null;
+
 function haversineNm(lat1, lon1, lat2, lon2) {
   const R = 3440.065;
   const toRad = d => d * Math.PI / 180;
@@ -1274,8 +1336,22 @@ function statusOf(hex) {
   return {
     cls: age < 6 * 3600000 ? 'stale' : 'off',
     label: 'Last seen ' + ago(age),
-    detail: (rec.ground ? 'on ground ' : 'airborne ') + whereText(rec),
+    detail: 'last known ' + whereText(rec),
   };
+}
+
+function fmtDur(ms) {
+  const m = Math.max(0, Math.floor(ms / 60000));
+  const h = Math.floor(m / 60);
+  return h ? h + ' h ' + String(m % 60).padStart(2, '0') + ' m' : m + ' m';
+}
+
+function fmtShort(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return s + 's';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm';
+  return Math.floor(m / 60) + 'h';
 }
 
 let fleetMap = null;
@@ -1318,18 +1394,26 @@ function updateMarkers() {
     const rec = fleetCache[a.hex];
     if (!rec) return;
     const st = statusOf(a.hex);
-    if (st.cls === 'off' && !markers[a.hex]) return;
+    const isGhost = st.cls === 'stale' || st.cls === 'off';
+    const hidden = (focusTail && a.tail !== focusTail) || (isGhost && !showGhosts);
+    if (hidden) {
+      if (markers[a.hex]) { fleetMap.removeLayer(markers[a.hex]); delete markers[a.hex]; }
+      return;
+    }
     const color = st.cls === 'air' ? '#6E9BE8' : st.cls === 'gnd' ? '#5BCB96' : '#6B7A94';
-    const dim = st.cls === 'stale' || st.cls === 'off';
-    const icon = planeIcon(rec.track, color, a.tail, dim);
+    const icon = planeIcon(rec.track, color, a.tail, isGhost);
     const pos = [rec.lat, rec.lon];
     if (markers[a.hex]) {
       markers[a.hex].setLatLng(pos).setIcon(icon);
     } else {
       markers[a.hex] = L.marker(pos, { icon }).addTo(fleetMap);
     }
+    let airLine = '';
+    if (st.cls === 'air' && rec.airSince) {
+      airLine = `<br>Airborne ${rec.airApprox ? '≥ ' : ''}${fmtDur(Date.now() - rec.airSince)}`;
+    }
     markers[a.hex].bindPopup(
-      `<strong>${a.tail}</strong> · ${modelLabel(a)}<br>${st.label}<br>${st.detail}`
+      `<strong>${a.tail}</strong> · ${modelLabel(a)}<br>${st.label}<br>${st.detail}${airLine}`
     );
   });
 }
@@ -1354,10 +1438,13 @@ function selectAircraft(a) {
   currentTail = a.tail;
   saveTail(a.tail);
   currentType = typeKeyOf(a);
+  if (focusTail) focusTail = a.tail;
   renderTabs();
   renderPicker();
   calculate();
   renderFleetList();
+  updateMarkers();
+  updateWatch();
   const rec = fleetCache[a.hex];
   if (fleetMap && rec) {
     fleetMap.setView([rec.lat, rec.lon], 12);
@@ -1365,12 +1452,23 @@ function selectAircraft(a) {
   }
 }
 
+function rowMatchesFilters(a, st) {
+  if (focusTail && a.tail !== focusTail) return false;
+  if (fltType !== 'all' && typeKeyOf(a) !== fltType) return false;
+  if (fltStatus === 'air' && st.cls !== 'air') return false;
+  if (fltStatus === 'gnd' && st.cls !== 'gnd') return false;
+  return true;
+}
+
 function renderFleetList() {
+  let shown = 0;
   ['172', '152'].forEach(type => {
     const el = document.getElementById('list-' + type);
     el.innerHTML = '';
     FLEET.filter(a => typeKeyOf(a) === type).forEach(a => {
       const st = statusOf(a.hex);
+      if (!rowMatchesFilters(a, st)) return;
+      shown++;
       const row = document.createElement('div');
       row.className = 'fleet-row' + (a.tail === currentTail ? ' selected' : '');
       row.dataset.tail = a.tail;
@@ -1382,6 +1480,81 @@ function renderFleetList() {
       el.appendChild(row);
     });
   });
+  const cnt = document.getElementById('filter-count');
+  const filtered = focusTail || fltStatus !== 'all' || fltType !== 'all';
+  cnt.innerText = filtered ? shown + '/' + FLEET.length + ' shown' : '';
+}
+
+function applyFleetFilters(status, type) {
+  if (status) fltStatus = status;
+  if (type) fltType = type;
+  document.querySelectorAll('#filter-status .fbtn').forEach(x => x.classList.toggle('active', x.dataset.v === fltStatus));
+  document.querySelectorAll('#filter-type .fbtn').forEach(x => x.classList.toggle('active', x.dataset.v === fltType));
+  renderFleetList();
+}
+
+function toggleGhosts() {
+  showGhosts = !showGhosts;
+  const b = document.getElementById('btn-ghosts');
+  if (b) b.classList.toggle('active', showGhosts);
+  updateMarkers();
+}
+
+function toggleFocus() {
+  if (!currentTail) return;
+  focusTail = focusTail === currentTail ? null : currentTail;
+  renderFleetList();
+  updateMarkers();
+  updateWatch();
+  if (focusTail) {
+    const a = AIRCRAFT.find(x => x.tail === focusTail);
+    const rec = a && fleetCache[a.hex];
+    if (fleetMap && rec) fleetMap.setView([rec.lat, rec.lon], 11);
+  }
+}
+
+function updateWatch() {
+  const tailEl = document.getElementById('watch-tail');
+  const statusEl = document.getElementById('watch-status');
+  const barwrap = document.getElementById('watch-barwrap');
+  const fill = document.getElementById('watch-bar-fill');
+  const verdict = document.getElementById('watch-verdict');
+  const btn = document.getElementById('btn-focus');
+  const ac = AIRCRAFT.find(a => a.tail === currentTail);
+  if (!ac) {
+    tailEl.innerText = '—';
+    statusEl.innerText = 'Pick a tail number to watch it here.';
+    barwrap.style.display = 'none';
+    btn.classList.remove('active');
+    return;
+  }
+  tailEl.innerText = ac.tail;
+  btn.classList.toggle('active', focusTail === ac.tail);
+  const rec = fleetCache[ac.hex];
+  const st = statusOf(ac.hex);
+  if (st.cls === 'air' && rec && rec.airSince) {
+    const dur = Date.now() - rec.airSince;
+    statusEl.innerText = 'Airborne ' + (rec.airApprox ? '≥ ' : '') + fmtDur(dur) +
+      ' · ' + (rec.alt || 0) + ' ft · ' + Math.round(rec.gs || 0) + ' kt · ' + whereText(rec);
+    barwrap.style.display = '';
+    fill.style.width = Math.min(100, dur / BLOCK_MS * 100) + '%';
+    fill.classList.toggle('over', dur > BLOCK_MS);
+    let v;
+    if (dur > BLOCK_MS) v = 'Over the typical 1.8 h block — likely returning soon';
+    else if (dur > BLOCK_MS * 0.83) v = 'Approaching the 1.8 h block — expect it back shortly';
+    else v = 'Mid-block · typical Wayman block 1.8 h — could be a while';
+    if (rec.airApprox) v += ' · timed from first signal';
+    verdict.innerText = v;
+  } else if (st.cls === 'gnd') {
+    statusEl.innerText = 'On ground · ' + whereText(rec);
+    barwrap.style.display = 'none';
+  } else if (st.cls === 'stale') {
+    statusEl.innerText = st.label + ' · ' + st.detail;
+    barwrap.style.display = 'none';
+  } else {
+    statusEl.innerText = 'No signal — likely parked at KHWO';
+    barwrap.style.display = 'none';
+  }
 }
 
 function renderFleetStatusbar() {
@@ -1389,17 +1562,19 @@ function renderFleetStatusbar() {
   const txt = document.getElementById('src-text');
   if (fleetFetchOk === null) {
     dot.className = 'dot';
-    txt.innerText = 'Connecting to live data…';
+    txt.innerText = 'Connecting…';
   } else if (fleetFetchOk) {
     dot.className = 'dot live';
-    const n = FLEET.filter(a => ['air', 'gnd'].includes(statusOf(a.hex).cls)).length;
-    txt.innerText = `Live · ${n} transmitting · updated ${ago(Date.now() - fleetFetchTime)}`;
+    const n = FLEET.filter(a => statusOf(a.hex).cls === 'air').length;
+    txt.innerText = `${n}/${FLEET.length} airborne · ${fmtShort(Date.now() - fleetFetchTime)}`;
+    txt.title = `Live via airplanes.live · updated ${ago(Date.now() - fleetFetchTime)}`;
   } else {
     dot.className = 'dot err';
-    txt.innerText = 'Data source unreachable — showing last known. Retrying…';
+    txt.innerText = 'Source unreachable — showing last known';
   }
   document.querySelectorAll('.fleet-row').forEach(r =>
     r.classList.toggle('selected', r.dataset.tail === currentTail));
+  updateWatch();
 }
 
 let fleetFirstFit = true;
@@ -1413,14 +1588,32 @@ async function refreshFleet() {
     (data.ac || []).forEach(ac => {
       const hex = (ac.hex || '').toLowerCase();
       if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') return;
+      const prev = fleetCache[hex];
+      const ground = ac.alt_baro === 'ground';
+      const ts = now - Math.round((ac.seen || 0) * 1000);
+      let airSince = null, airApprox = false;
+      if (!ground) {
+        const prevFresh = prev && (ts - prev.ts) < 30 * 60000;
+        if (prevFresh && !prev.ground && prev.airSince) {
+          airSince = prev.airSince;
+          airApprox = !!prev.airApprox;
+        } else if (prevFresh && prev.ground) {
+          airSince = ts;
+        } else {
+          airSince = ts;
+          airApprox = true;
+        }
+      }
       fleetCache[hex] = {
         lat: ac.lat,
         lon: ac.lon,
-        alt: ac.alt_baro === 'ground' ? 0 : Math.round(ac.alt_baro || 0),
+        alt: ground ? 0 : Math.round(ac.alt_baro || 0),
         gs: ac.gs || 0,
         track: typeof ac.track === 'number' ? ac.track : null,
-        ground: ac.alt_baro === 'ground',
-        ts: now - Math.round((ac.seen || 0) * 1000),
+        ground,
+        ts,
+        airSince,
+        airApprox,
       };
     });
     try { localStorage.setItem(FLEET_CACHE_KEY, JSON.stringify(fleetCache)); } catch (e) {}
@@ -1444,6 +1637,15 @@ function initFleetApp() {
   setInterval(renderFleetStatusbar, 1000);
   document.getElementById('btn-refresh').onclick = refreshFleet;
   document.getElementById('btn-fit').onclick = fitFleet;
+  document.getElementById('btn-ghosts').onclick = toggleGhosts;
+  document.getElementById('btn-focus').onclick = toggleFocus;
+  document.querySelectorAll('#filter-status .fbtn').forEach(b => {
+    b.onclick = () => applyFleetFilters(b.dataset.v, null);
+  });
+  document.querySelectorAll('#filter-type .fbtn').forEach(b => {
+    b.onclick = () => applyFleetFilters(null, b.dataset.v);
+  });
+  updateWatch();
 }
 
 initCalcApp();

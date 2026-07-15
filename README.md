@@ -36,6 +36,12 @@ No build step, no dependencies to install — Leaflet and map tiles load from CD
   school adds/re-registers aircraft, update the `AIRCRAFT` array in index.html (hex + W&B
   data from the aircraft's official records).
 
+## Roadmap
+
+- Fuel-consumption / cross-country planning helpers (flight-plan prep with a Wayman aircraft)
+- KHWO METAR integration
+- URL deep-link to a tail (`?tail=N155SK`)
+
 ## Disclaimers
 
 Training aids only. Verify all weight & balance figures against the aircraft's official
