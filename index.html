@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080D16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wayman Fleet — W&B + Live Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #080D16;
+  --surface: #0C1526;
+  --surface2: #10233F;
+  --raise: #16233C;
+  --ink: #EDF1F7;
+  --sub: #9FB2D1;
+  --slate: #6B7A94;
+  --powder: #1B2941;
+  --accent: #4A7DD6;
+  --ok: #5BCB96;
+  --warn: #E8C468;
+  --fail: #F08080;
+  --serif: "Instrument Serif", serif;
+  --sans: Archivo, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background-color: var(--paper);
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.5;
+}
+a { color: var(--sub); }
+a:hover { color: var(--ink); }
+
+.topbar { position: sticky; top: 0; z-index: 1200; background: var(--paper); border-bottom: 1px solid var(--powder); }
+.masthead {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding: 14px 20px 12px; max-width: 1500px; margin: 0 auto; width: 100%;
+}
+.brand { font: 400 26px/1 var(--serif); letter-spacing: -0.005em; white-space: nowrap; }
+.brand em { font-style: italic; }
+.brand-sub { font: 500 10px var(--mono); color: var(--slate); letter-spacing: 0.14em; white-space: nowrap; }
+.jumpnav {
+  display: flex; gap: 0; overflow-x: auto; border-top: 1px solid var(--powder);
+  max-width: 1500px; margin: 0 auto; width: 100%; scrollbar-width: none;
+}
+.jumpnav::-webkit-scrollbar { display: none; }
+.jumpnav a {
+  font: 600 10.5px var(--sans); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--slate); text-decoration: none; padding: 11px 16px; white-space: nowrap;
+  border-right: 1px solid var(--powder);
+}
+.jumpnav a:hover { color: var(--ink); background: var(--surface); }
+@media (min-width: 1100px) { .jumpnav { display: none; } }
+
+.container { max-width: 1500px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.card { background: var(--surface); border: 1px solid var(--powder); padding: 18px 20px; }
+.eyebrow {
+  font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--slate); margin-bottom: 14px;
+}
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- hero ---------- */
+.hero { background: var(--surface); border: 1px solid var(--powder); }
+.hero-top { padding: 16px 20px 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.hero-select { padding: 14px 20px 16px; border-bottom: 1px solid var(--powder); }
+.hero-id { padding: 16px 20px 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--powder); }
+#hero-tail { font: 400 46px/1 var(--serif); letter-spacing: 0.01em; }
+#hero-meta { font: 500 11px var(--mono); color: var(--slate); letter-spacing: 0.08em; }
+.kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+.kpi { padding: 14px 20px 16px; border-right: 1px solid var(--powder); min-width: 0; }
+.kpi:last-child { border-right: none; }
+.kpi-label { font: 600 9.5px var(--sans); letter-spacing: 0.13em; color: var(--slate); text-transform: uppercase; }
+.kpi-value { font: 400 34px/1.15 var(--serif); margin-top: 3px; white-space: nowrap; }
+.kpi-unit { font-size: 17px; color: var(--slate); }
+.kpi-note { font: 500 9.5px var(--mono); letter-spacing: 0.05em; margin-top: 2px; min-height: 15px; }
+.kpi-note.ok { color: var(--ok); }
+.kpi-note.fail { color: var(--fail); }
+@media (max-width: 640px) {
+  .kpi-value { font-size: 25px; }
+  .kpi { padding: 12px 14px 13px; }
+  #hero-tail { font-size: 38px; }
+}
+
+/* ---------- tabs + picker ---------- */
+.type-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.tab {
+  padding: 8px 18px; border: 1px solid var(--powder); background: transparent;
+  color: var(--slate); cursor: pointer; font: 600 12px var(--sans); letter-spacing: 0.06em;
+  text-transform: uppercase; user-select: none; transition: all 0.15s ease;
+}
+.tab:hover { color: var(--ink); border-color: var(--slate); }
+.tab.active { background: var(--surface2); color: var(--ink); border-color: var(--accent); }
+.tab .count { font-weight: 400; opacity: 0.7; font-size: 11px; }
+.aircraft-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  padding: 7px 12px; border: 1px solid var(--powder); background: var(--paper);
+  color: var(--sub); cursor: pointer; display: flex; align-items: baseline; gap: 7px;
+  font: 500 12.5px var(--mono); transition: all 0.15s ease; user-select: none; white-space: nowrap;
+}
+.pill:hover { border-color: var(--slate); color: var(--ink); }
+.pill.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pill strong { font-weight: 600; }
+.pill-badge { font-size: 10px; color: var(--slate); letter-spacing: 0.04em; }
+.pill.active .pill-badge { color: #45526B; }
+
+/* ---------- forms ---------- */
+.input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font: 600 10.5px var(--sans); letter-spacing: 0.09em; text-transform: uppercase; color: var(--sub); }
+.form-group input, .form-group select {
+  padding: 10px 11px; border: 1px solid var(--powder); border-radius: 0;
+  font: 500 15px var(--mono); background: var(--paper); color: var(--ink);
+  font-variant-numeric: tabular-nums; appearance: none; width: 100%;
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+.helper { font-size: 11.5px; color: var(--slate); margin-top: 3px; }
+
+.useful-strip {
+  margin-top: 16px; background: var(--surface2); padding: 11px 14px;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+}
+.useful-strip .lbl { font: 600 10px var(--sans); letter-spacing: 0.11em; color: var(--sub); text-transform: uppercase; }
+.useful-strip strong { font: 500 15px var(--mono); color: var(--ink); }
+
+/* ---------- table ---------- */
+.wb-table-wrapper { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: right; font-variant-numeric: tabular-nums; font: 500 13px var(--mono); }
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--powder); }
+td:first-child { font-family: var(--sans); font-size: 13px; color: var(--sub); }
+th { color: var(--slate); font: 600 9.5px var(--sans); text-transform: uppercase; letter-spacing: 0.12em; }
+th:first-child, td:first-child { text-align: left; }
+tr.subtotal td { background-color: var(--surface2); font-weight: 600; color: var(--ink); }
+tr.subtotal td:first-child { color: var(--ink); }
+tr:last-child td { border-bottom: none; }
+.pulse-highlight { animation: pulse 150ms ease-out; }
+@keyframes pulse {
+  0% { background-color: var(--powder); color: var(--ink); }
+  100% { background-color: transparent; }
+}
+@media (prefers-reduced-motion) { .pulse-highlight { animation: none; } }
+
+/* ---------- chips ---------- */
+.status-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  padding: 6px 10px; font: 600 10.5px var(--mono); letter-spacing: 0.05em;
+  text-transform: uppercase; display: inline-flex; align-items: center;
+}
+.chip.ok { background: #0E2A1E; color: var(--ok); }
+.chip.warn { background: #33290F; color: var(--warn); }
+.chip.fail { background: #331416; color: var(--fail); }
+.chip.info { background: var(--raise); color: var(--sub); }
+
+.svg-container {
+  width: 100%; aspect-ratio: 16 / 9; background: var(--paper);
+  border: 1px solid var(--powder); position: relative; overflow: hidden;
+}
+
+footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8px 20px 28px; }
+
+/* ---------- layout ---------- */
+.layout { display: grid; grid-template-areas: "calc" "map"; gap: 20px; width: 100%; }
+.map-pane { grid-area: map; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.calc-pane { grid-area: calc; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+@media (min-width: 1100px) {
+  .layout {
+    grid-template-areas: "map calc";
+    grid-template-columns: minmax(420px, 5fr) minmax(500px, 6fr);
+    align-items: start;
+  }
+  .map-pane { position: sticky; top: 72px; }
+}
+
+/* ---------- map + fleet ---------- */
+#map { width: 100%; height: 42vh; min-height: 300px; border: 1px solid var(--powder); background: var(--surface); }
+@media (min-width: 1100px) { #map { height: 44vh; } }
+.leaflet-container { background: var(--surface); font: inherit; }
+.leaflet-control-zoom, .leaflet-control-attribution { display: none; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface2); color: var(--ink); border-radius: 0; }
+.leaflet-marker-icon { transition: transform 1.2s linear; }
+.plane-marker svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+.plane-label {
+  font: 700 10.5px var(--mono); color: var(--ink);
+  text-shadow: 0 1px 3px #000, 0 0 4px #000; white-space: nowrap;
+  transform: translateX(-50%); position: absolute; left: 50%; top: 26px;
+}
+.statusbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font: 500 11.5px var(--mono); color: var(--slate); }
+.statusbar .dot { width: 8px; height: 8px; background: var(--slate); display: inline-block; }
+.statusbar .dot.live { background: var(--ok); }
+.statusbar .dot.err { background: var(--fail); }
+.statusbar button {
+  margin-left: auto; background: transparent; color: var(--sub);
+  border: 1px solid var(--powder); border-radius: 0; padding: 6px 12px;
+  font: 600 10.5px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.statusbar button + button { margin-left: 0; }
+.statusbar button:hover { border-color: var(--accent); color: var(--ink); }
+
+.fleet-scroll { max-height: 300px; overflow-y: auto; }
+.fleet-list { display: flex; flex-direction: column; gap: 5px; }
+.fleet-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border: 1px solid var(--powder); background: var(--paper); cursor: pointer; flex-wrap: wrap;
+}
+.fleet-row:hover { border-color: var(--slate); }
+.fleet-row.selected { border-color: var(--accent); background: var(--surface2); }
+.fleet-row .tail { font: 600 12.5px var(--mono); min-width: 70px; }
+.state {
+  padding: 2px 8px; font: 600 9.5px var(--mono); letter-spacing: 0.05em;
+  text-transform: uppercase; white-space: nowrap;
+}
+.state.air { background: #12213C; color: #6E9BE8; }
+.state.gnd { background: #0E2A1E; color: var(--ok); }
+.state.stale { background: var(--raise); color: var(--slate); }
+.state.off { background: transparent; color: var(--slate); border: 1px dashed var(--powder); }
+.fleet-row .detail {
+  color: var(--slate); font: 400 11px var(--mono); flex: 1; min-width: 120px;
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="masthead">
+    <div class="brand"><em>Wayman</em> Fleet</div>
+    <div class="brand-sub">KHWO · W&amp;B · PERFORMANCE · LIVE MAP</div>
+  </div>
+  <nav class="jumpnav">
+    <a href="#sec-calc">Calculator</a>
+    <a href="#sec-wb">W&amp;B Table</a>
+    <a href="#sec-perf">Performance</a>
+    <a href="#sec-map">Map</a>
+    <a href="#sec-fleet">Fleet</a>
+  </nav>
+</div>
+
+<main class="container">
+
+  <section class="hero" data-screen-label="Aircraft select">
+    <div class="hero-select">
+      <div class="type-tabs" id="type-tabs"></div>
+      <div class="aircraft-picker" id="aircraft-picker">
+        <div class="chip warn">If no tail numbers appear here, this viewer isn't running JavaScript — open the file in Safari or Chrome instead.</div>
+      </div>
+    </div>
+    <div class="hero-id">
+      <div id="hero-tail">—</div>
+      <div id="hero-meta">PICK A TAIL NUMBER TO BEGIN</div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Take-Off Weight</div>
+        <div class="kpi-value"><span id="kpi-tow">—</span><span class="kpi-unit"> lb</span></div>
+        <div class="kpi-note ok" id="kpi-tow-note"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Take-Off CG</div>
+        <div class="kpi-value"><span id="kpi-cg">—</span><span class="kpi-unit"> in</span></div>
+        <div class="kpi-note ok" id="kpi-cg-note"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Useful Load Left</div>
+        <div class="kpi-value"><span id="kpi-useful">—</span><span class="kpi-unit"> lb</span></div>
+        <div class="kpi-note ok" id="kpi-useful-note"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <section class="map-pane" id="sec-map" data-screen-label="Live map + fleet">
+      <div class="card">
+        <div class="statusbar">
+          <span class="dot" id="src-dot"></span>
+          <span id="src-text">Connecting to live data…</span>
+          <button id="btn-refresh">Refresh</button>
+          <button id="btn-fit">Fit fleet</button>
+        </div>
+      </div>
+      <div id="map"></div>
+      <div class="card" id="sec-fleet">
+        <div class="eyebrow">Fleet Status — Live</div>
+        <div class="fleet-scroll">
+          <div class="fleet-list" id="list-172"></div>
+          <div style="height: 10px;"></div>
+          <div class="fleet-list" id="list-152"></div>
+        </div>
+        <div class="helper" style="margin-top: 10px;">
+          A parked aircraft with the master off transmits nothing — "No signal" usually means it's on the ramp.
+          Tap a row to select that aircraft in the calculator and center the map on it.
+        </div>
+      </div>
+    </section>
+
+    <section class="calc-pane" id="sec-calc" data-screen-label="Calculator">
+      <div class="card">
+        <div class="eyebrow">Payload &amp; Fuel</div>
+        <div class="input-grid">
+          <div class="form-group">
+            <label id="lbl-front">Pilot &amp; Front Pass. (lb)</label>
+            <input type="number" id="inp-front" min="0" step="1">
+          </div>
+          <div class="form-group">
+            <label id="lbl-row2">Rear Passengers (lb)</label>
+            <input type="number" id="inp-rear" min="0" step="1">
+            <div class="helper" id="help-row2">Backpacks &amp; bags usually ride here (arm 73).</div>
+          </div>
+          <div class="form-group">
+            <label id="lbl-row3">Baggage (lb)</label>
+            <input type="number" id="inp-baggage" min="0" step="1">
+            <div class="helper" id="help-row3">Baggage area (arm 95) — usually left blank.</div>
+          </div>
+          <div class="form-group">
+            <label>Fuel on Board (gal)</label>
+            <input type="number" id="inp-fob" min="0" max="40" step="0.1" value="40">
+            <div class="helper">Usable weight: <span id="fob-lb" class="num">240.0</span> lb</div>
+            <div class="helper" id="fuel-note" style="color: var(--warn); display: none;"></div>
+          </div>
+          <div class="form-group">
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+              Fuel Burn
+              <select id="inp-burn-unit" style="width: auto; padding: 2px 6px; font-size: 11px; border: none; background: transparent; cursor: pointer; color: var(--accent);">
+                <option value="gal">gal</option>
+                <option value="lb">lb</option>
+              </select>
+            </label>
+            <input type="number" id="inp-burn" min="0" step="0.1">
+            <div class="helper">Converted: <span id="burn-converted" class="num">0.0</span> <span id="burn-converted-unit">lb</span></div>
+          </div>
+          <div class="form-group">
+            <label>Flight Conditions</label>
+            <div style="display:flex; gap:8px;">
+              <select id="inp-daynight" style="flex: 1;">
+                <option value="day">Day</option>
+                <option value="night">Night</option>
+              </select>
+              <div style="display:flex; align-items:center; gap:4px; flex: 1;">
+                <input type="number" id="inp-burnrate" value="8.0" step="0.1" title="Burn rate (GPH)" style="width:100%;">
+                <span style="font-size:11.5px; color:var(--slate);">GPH</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="useful-strip">
+          <span class="lbl">Remaining Useful Load</span>
+          <strong id="useful-load-remaining" class="num">—</strong>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">Status</div>
+        <div class="status-strip" id="status-strip">
+          <div class="chip info">Pick a tail number to begin.</div>
+        </div>
+      </div>
+
+      <div class="card" id="sec-wb" data-screen-label="W&amp;B table">
+        <div class="eyebrow">Weight &amp; Balance</div>
+        <div class="wb-table-wrapper">
+          <table class="wb-table">
+            <thead>
+              <tr><th>Item</th><th>Weight</th><th>Arm</th><th>Moment</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Basic Empty Weight</td>
+                <td id="w_bew" class="num">—</td>
+                <td id="a_bew" class="num">—</td>
+                <td id="m_bew" class="num">—</td>
+              </tr>
+              <tr>
+                <td>Pilot &amp; Passenger</td>
+                <td id="w_front" class="num">—</td>
+                <td id="a_front" class="num">37.00</td>
+                <td id="m_front" class="num">—</td>
+              </tr>
+              <tr>
+                <td id="row2-label">Rear Passengers</td>
+                <td id="w_rear" class="num">—</td>
+                <td id="a_row2" class="num">73.00</td>
+                <td id="m_rear" class="num">—</td>
+              </tr>
+              <tr>
+                <td id="row3-label">Baggage</td>
+                <td id="w_baggage" class="num">—</td>
+                <td id="a_row3" class="num">95.00</td>
+                <td id="m_baggage" class="num">—</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Zero Fuel Weight</td>
+                <td id="w_zfw" class="num">—</td>
+                <td id="a_zfw" class="num">—</td>
+                <td id="m_zfw" class="num">—</td>
+              </tr>
+              <tr>
+                <td>Total Fuel</td>
+                <td id="w_fob" class="num">—</td>
+                <td id="a_fob" class="num">47.92</td>
+                <td id="m_fob" class="num">—</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Ramp Weight</td>
+                <td id="w_ramp" class="num">—</td>
+                <td id="a_ramp" class="num">—</td>
+                <td id="m_ramp" class="num">—</td>
+              </tr>
+              <tr>
+                <td>Start/Taxi/Run-Up</td>
+                <td style="padding:4px 12px;"><input type="number" id="inp-taxi" value="-7" step="1" style="width:70px; padding:5px; text-align:right; font: 500 13px var(--mono); border:1px solid var(--powder); border-radius:0; background:var(--paper); color:var(--ink);" class="num"></td>
+                <td class="num">—</td>
+                <td id="m_taxi" class="num">−335.0</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Take-Off Weight</td>
+                <td id="w_to" class="num">—</td>
+                <td id="a_to" class="num">—</td>
+                <td id="m_to" class="num">—</td>
+              </tr>
+              <tr>
+                <td>Fuel Burn</td>
+                <td id="w_burn" class="num">—</td>
+                <td id="a_burn" class="num">47.92</td>
+                <td id="m_burn" class="num">—</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Landing Weight</td>
+                <td id="w_land" class="num">—</td>
+                <td id="a_land" class="num">—</td>
+                <td id="m_land" class="num">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">CG Envelope</div>
+        <div class="svg-container">
+          <svg id="cg-plot" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" width="100%" height="100%"></svg>
+        </div>
+      </div>
+
+      <div class="card" id="sec-perf" data-screen-label="Performance">
+        <div class="eyebrow">Performance</div>
+        <div class="input-grid">
+          <div class="form-group">
+            <label>Field Elevation (ft)</label>
+            <input type="number" id="inp-fe" step="10">
+          </div>
+          <div class="form-group">
+            <label>Altimeter (inHg)</label>
+            <input type="number" id="inp-alt" value="29.92" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>OAT (°C)</label>
+            <input type="number" id="inp-oat" step="1">
+          </div>
+        </div>
+        <div id="perf-output" style="margin-top: 16px; font-size: 14px; line-height: 1.6;">
+          <span style="color:var(--slate)">Enter FE, ALT, and OAT to compute performance.</span>
+        </div>
+        <div class="helper" style="margin-top: 12px; border-top: 1px solid var(--powder); padding-top: 12px;">
+          Short field · at max gross · conservative — from the school performance card.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Training aid. Verify all figures against the aircraft's official weight &amp; balance records and POH before flight.<br>
+    Live positions via airplanes.live (may lag or drop out) — planning aid only, never use for traffic separation.
+  </footer>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Wayman Fleet app logic — extracted verbatim from original, restyled hooks only.
+const AIRCRAFT = [
+  { tail: "N4974G", hex: "a62d04", model: "NM", emptyWeight: 1542,   emptyMoment: 60803.25, maxGross: 2300 },
+  { tail: "N53107", hex: "a6b69c", model: "P",  emptyWeight: 1532,   emptyMoment: 57515.88, maxGross: 2400 },
+  { tail: "N53996", hex: "a6d58e", model: "P",  emptyWeight: 1526,   emptyMoment: 58083.00, maxGross: 2400 },
+  { tail: "N62218", hex: "a82047", model: "P",  emptyWeight: 1504,   emptyMoment: 57962.51, maxGross: 2400 },
+  { tail: "N65645", hex: "a8a606", model: "P",  emptyWeight: 1467,   emptyMoment: 58272.40, maxGross: 2400 },
+  { tail: "N66174", hex: "a8bb5a", model: "P",  emptyWeight: 1565,   emptyMoment: 60552.50, maxGross: 2400 },
+  { tail: "N734BH", hex: "a9da08", model: "NM", emptyWeight: 1510,   emptyMoment: 56075.00, maxGross: 2400, verify: true },
+  { tail: "N737PY", hex: "a9e668", model: "NM", emptyWeight: 1486.6, emptyMoment: 58007.70, maxGross: 2300 },
+  { tail: "N905WA", hex: "ac83b4", model: "NM", emptyWeight: 1541,   emptyMoment: 59968.75, maxGross: 2300 },
+  { tail: "N906WA", hex: "ac876b", model: "NM", emptyWeight: 1514,   emptyMoment: 56558.50, maxGross: 2300 },
+  { tail: "N92324", hex: "accc0a", model: "NM", emptyWeight: 1531,   emptyMoment: 58953.00, maxGross: 2300 },
+  { tail: "N155SK", hex: "a0de5c", model: "152", emptyWeight: 1178.15, emptyMoment: 36065.72, maxGross: 1670 },
+  { tail: "N24857", hex: "a250de", model: "152", emptyWeight: 1230,    emptyMoment: 37365.00, maxGross: 1670 },
+  { tail: "N46953", hex: "a5be2d", model: "152", emptyWeight: 1192,    emptyMoment: 35699.75, maxGross: 1670 },
+  { tail: "N47586", hex: "a5d73c", model: "152", emptyWeight: 1241,    emptyMoment: 39397.00, maxGross: 1670, verify: true },
+  { tail: "N5551L", hex: "a71484", model: "152", emptyWeight: 1238,    emptyMoment: 39112.51, maxGross: 1670 },
+  { tail: "N6097M", hex: "a7ec07", model: "152", emptyWeight: 1228,    emptyMoment: 37487.75, maxGross: 1670 },
+  { tail: "N6300Q", hex: "a84023", model: "152", emptyWeight: 1225,    emptyMoment: 37326.50, maxGross: 1670 },
+  { tail: "N65401", hex: "a89e08", model: "152", emptyWeight: 1225,    emptyMoment: 37541.37, maxGross: 1670 },
+  { tail: "N67324", hex: "a8e998", model: "152", emptyWeight: 1232.8,  emptyMoment: 37650.45, maxGross: 1670 },
+  { tail: "N67549", hex: "a8f151", model: "152", emptyWeight: 1157,    emptyMoment: 34710.00, maxGross: 1670, verify: true },
+  { tail: "N908WA", hex: "ac8ed9", model: "152", emptyWeight: 1245,    emptyMoment: 38657.00, maxGross: 1670 },
+  { tail: "N93730", hex: "ad0284", model: "152", emptyWeight: 1233,    emptyMoment: 37191.00, maxGross: 1670 },
+];
+
+const FUEL_LB_PER_GAL = 6.0;
+
+const TYPES = {
+  '172': {
+    label: 'C-172',
+    arms: { front: 37.0, row2: 73.0, row3: 95.0, fuel: 11500 / 240 },
+    frontLabel: 'Pilot & Front Pass. (lb)',
+    row2Label: 'Rear Passengers',
+    row2Helper: 'Backpacks & bags usually ride here (arm 73).',
+    row3Label: 'Baggage',
+    row3Helper: 'Baggage area (arm 95, max 120 lb) — usually left blank.',
+    fuelNote: '',
+    usableGal: 40,
+    taxiDefault: -7,
+    rampAllowance: 7,
+    burnRateDefault: 8.0,
+    plot: { xMin: 34, xMax: 48, yMin: 1500 },
+    hasUtility: true,
+  },
+  '152': {
+    label: 'C-152',
+    arms: { front: 39.0, row2: 64.0, row3: 84.0, fuel: 6200 / 147 },
+    fuelArmDisplay: 42.17,
+    frontLabel: 'Pilot & Passenger (lb)',
+    row2Label: 'Baggage Area 1',
+    row2Helper: 'Behind seats (arm 64, max 120 lb; Areas 1+2 combined max 120).',
+    row3Label: 'Baggage Area 2 (shelf)',
+    row3Helper: 'Aft shelf (arm 84, max 40 lb) — usually left blank.',
+    fuelNote: 'Standard tanks assumed (24.5 gal usable) — verify for this tail.',
+    usableGal: 24.5,
+    taxiDefault: -6,
+    rampAllowance: 5,
+    burnRateDefault: 6.0,
+    plot: { xMin: 30, xMax: 37, yMin: 1000 },
+    hasUtility: false,
+  },
+};
+
+const typeKeyOf = ac => (ac.model === '152' ? '152' : '172');
+const typeOf = ac => TYPES[typeKeyOf(ac)];
+
+const ENVELOPES = {
+  NM: { 
+    normal:  [[35.0,1500],[35.0,1950],[38.5,2300],[47.3,2300],[47.3,1500]],
+    utility: [[35.0,1500],[35.0,1950],[35.5,2000],[40.5,2000],[40.5,1500]],
+  },
+  P: {
+    normal:  [[35.0,1500],[35.0,1950],[39.5,2400],[47.3,2400],[47.3,1500]],
+    utility: [[35.0,1500],[35.0,1950],[36.5,2100],[40.5,2100],[40.5,1500]],
+  },
+  '152': {
+    normal:  [[31.0,1000],[31.0,1350],[32.65,1670],[36.5,1670],[36.5,1000]],
+  },
+};
+
+const PERF = {
+  NM: {
+    label: "C-172 N/M · 2300 lb · short field",
+    takeoffSpeedsKIAS: { liftoff: 52, at50ft: 59 },
+    landingSpeedKIAS: 60,
+    takeoff: {
+      temps: [0, 10, 20, 30, 40],
+      rows: [
+        { pa: 0,    cells: [[720,1300],[775,1390],[835,1490],[895,1590],[960,1700]] },
+        { pa: 1000, cells: [[790,1420],[850,1525],[915,1630],[980,1745],[1050,1865]] },
+        { pa: 2000, cells: [[865,1555],[930,1670],[1000,1790],[1075,1915],[1155,2055]] },
+        { pa: 3000, cells: [[950,1710],[1025,1835],[1100,1970],[1185,2115],[1270,2265]] },
+        { pa: 4000, cells: [[1045,1880],[1125,2025],[1210,2175],[1300,2335],[1400,2510]] },
+        { pa: 5000, cells: [[1150,2075],[1240,2240],[1335,2410],[1435,2595],[1540,2795]] },
+        { pa: 6000, cells: [[1265,2305],[1365,2485],[1475,2680],[1585,2895],[1705,3125]] },
+        { pa: 7000, cells: [[1400,2565],[1510,2770],[1630,3000],[1755,3245],[1890,3515]] },
+        { pa: 8000, cells: [[1550,2870],[1675,3110],[1805,3375],[1945,3670],[2095,3990]] },
+      ],
+    },
+    landing: {
+      temps: [0, 10, 20, 30, 40],
+      rows: [
+        { pa: 0,    cells: [[495,1205],[510,1235],[530,1265],[545,1295],[565,1330]] },
+        { pa: 1000, cells: [[510,1235],[530,1265],[550,1300],[565,1330],[585,1365]] },
+        { pa: 2000, cells: [[530,1265],[550,1300],[570,1335],[590,1370],[610,1405]] },
+        { pa: 3000, cells: [[550,1300],[570,1335],[590,1370],[610,1405],[630,1440]] },
+        { pa: 4000, cells: [[570,1335],[590,1370],[615,1410],[635,1445],[655,1480]] },
+        { pa: 5000, cells: [[590,1370],[615,1415],[635,1450],[665,1485],[680,1525]] },
+        { pa: 6000, cells: [[615,1415],[640,1455],[660,1490],[685,1535],[705,1570]] },
+        { pa: 7000, cells: [[640,1455],[660,1495],[685,1535],[710,1575],[730,1615]] },
+        { pa: 8000, cells: [[665,1500],[690,1540],[710,1580],[735,1620],[760,1665]] },
+      ],
+    },
+  },
+  P: {
+    label: "C-172 P · 2400 lb · short field",
+    takeoffSpeedsKIAS: { liftoff: 51, at50ft: 56 },
+    landingSpeedKIAS: 61,
+    takeoff: {
+      temps: [0, 10, 20, 30, 40],
+      rows: [
+        { pa: 0,    cells: [[795,1460],[860,1570],[925,1685],[995,1810],[1065,1945]] },
+        { pa: 1000, cells: [[875,1605],[940,1725],[1015,1860],[1090,2000],[1170,2155]] },
+        { pa: 2000, cells: [[960,1770],[1035,1910],[1115,2060],[1200,2220],[1290,2395]] },
+        { pa: 3000, cells: [[1055,1960],[1140,2120],[1230,2295],[1325,2480],[1425,2685]] },
+        { pa: 4000, cells: [[1165,2185],[1260,2365],[1355,2570],[1465,2790],[1575,3030]] },
+        { pa: 5000, cells: [[1285,2445],[1390,2660],[1500,2895],[1620,3160],[1745,3455]] },
+        { pa: 6000, cells: [[1425,2755],[1540,3015],[1665,3300],[1800,3620],[1940,3990]] },
+        { pa: 7000, cells: [[1580,3140],[1710,3450],[1850,3805],[2000,4220],null] },
+        { pa: 8000, cells: [[1755,3615],[1905,4015],[2060,4480],null,null] },
+      ],
+    },
+    landing: {
+      temps: [0, 10, 20, 30, 40],
+      rows: [
+        { pa: 0,    cells: [[510,1235],[530,1265],[550,1295],[570,1325],[585,1350]] },
+        { pa: 1000, cells: [[530,1265],[550,1295],[570,1325],[590,1360],[610,1390]] },
+        { pa: 2000, cells: [[550,1295],[570,1330],[590,1360],[610,1390],[630,1425]] },
+        { pa: 3000, cells: [[570,1330],[590,1360],[615,1395],[635,1430],[655,1460]] },
+        { pa: 4000, cells: [[595,1365],[615,1400],[635,1430],[660,1470],[680,1500]] },
+        { pa: 5000, cells: [[615,1400],[640,1435],[660,1470],[685,1510],[705,1540]] },
+        { pa: 6000, cells: [[640,1435],[660,1470],[685,1510],[710,1550],[730,1580]] },
+        { pa: 7000, cells: [[665,1475],[690,1515],[710,1550],[735,1590],[760,1630]] },
+        { pa: 8000, cells: [[690,1515],[715,1555],[740,1595],[765,1635],[790,1675]] },
+      ],
+    },
+  },
+  '152': {
+    label: "C-152 · 1670 lb · short field",
+    takeoffSpeedsKIAS: { liftoff: 50, at50ft: 54 },
+    landingSpeedKIAS: 54,
+    takeoff: {
+      temps: [0, 10, 20, 30, 40],
+      rows: [
+        { pa: 0,    cells: [[640,1190],[695,1290],[755,1390],[810,1495],[875,1605]] },
+        { pa: 1000, cells: [[705,1310],[765,1420],[825,1530],[890,1645],[960,1770]] },
+        { pa: 2000, cells: [[775,1445],[840,1565],[910,1690],[980,1820],[1055,1960]] },
+        { pa: 3000, cells: [[855,1600],[925,1730],[1000,1870],[1080,2020],[1165,2185]] },
+        { pa: 4000, cells: [[940,1775],[1020,1920],[1100,2080],[1190,2250],[1285,2440]] },
+        { pa: 5000, cells: [[1040,1970],[1125,2140],[1215,2320],[1315,2525],[1420,2750]] },
+        { pa: 6000, cells: [[1145,2200],[1245,2395],[1345,2610],[1455,2855],[1570,3125]] },
+        { pa: 7000, cells: [[1270,2470],[1375,2705],[1490,2960],[1615,3255],[1745,3590]] },
+        { pa: 8000, cells: [[1405,2800],[1525,3080],[1655,3395],[1795,3765],[1940,4195]] },
+      ],
+    },
+    landing: {
+      temps: [0, 10, 20, 30, 40],
+      rows: [
+        { pa: 0,    cells: [[450,1160],[465,1185],[485,1215],[500,1240],[515,1265]] },
+        { pa: 1000, cells: [[465,1185],[485,1215],[500,1240],[520,1270],[535,1295]] },
+        { pa: 2000, cells: [[485,1215],[500,1240],[520,1270],[535,1300],[555,1330]] },
+        { pa: 3000, cells: [[500,1240],[520,1275],[540,1305],[560,1335],[575,1360]] },
+        { pa: 4000, cells: [[520,1275],[540,1305],[560,1335],[580,1370],[600,1400]] },
+        { pa: 5000, cells: [[540,1305],[560,1335],[580,1370],[600,1400],[620,1435]] },
+        { pa: 6000, cells: [[560,1340],[580,1370],[605,1410],[625,1440],[645,1475]] },
+        { pa: 7000, cells: [[585,1375],[605,1410],[625,1440],[650,1480],[670,1515]] },
+        { pa: 8000, cells: [[605,1410],[630,1450],[650,1480],[675,1520],[695,1555]] },
+      ],
+    },
+  },
+};
+
+function loadSaved(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, val); } catch (e) {}
+}
+function loadSavedTail() {
+  return loadSaved('wayman-wb-tail');
+}
+function saveTail(tail) {
+  save('wayman-wb-tail', tail);
+  const ac = AIRCRAFT.find(a => a.tail === tail);
+  if (ac) save('wayman-wb-tail-' + typeKeyOf(ac), tail);
+}
+function tailForType(key) {
+  const saved = loadSaved('wayman-wb-tail-' + key);
+  if (AIRCRAFT.some(a => a.tail === saved && typeKeyOf(a) === key)) return saved;
+  const first = AIRCRAFT.find(a => typeKeyOf(a) === key);
+  return first ? first.tail : null;
+}
+
+let currentTail = loadSavedTail();
+if (!AIRCRAFT.some(a => a.tail === currentTail)) currentTail = null;
+let currentType = currentTail ? typeKeyOf(AIRCRAFT.find(a => a.tail === currentTail)) : '172';
+let appliedType = null;
+
+function renderTabs() {
+  const container = document.getElementById('type-tabs');
+  container.innerHTML = '';
+  ['172', '152'].forEach(key => {
+    const n = AIRCRAFT.filter(a => typeKeyOf(a) === key).length;
+    const btn = document.createElement('div');
+    btn.className = 'tab' + (key === currentType ? ' active' : '');
+    btn.innerHTML = `${TYPES[key].label} <span class="count">· ${n}</span>`;
+    btn.onclick = () => {
+      currentType = key;
+      currentTail = tailForType(key);
+      if (currentTail) saveTail(currentTail);
+      renderTabs();
+      renderPicker();
+      calculate();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function renderPicker() {
+  const container = document.getElementById('aircraft-picker');
+  container.innerHTML = '';
+  AIRCRAFT.filter(a => typeKeyOf(a) === currentType).forEach(a => {
+    const btn = document.createElement('div');
+    btn.className = 'pill' + (a.tail === currentTail ? ' active' : '');
+    let badge = `<span class="pill-badge">${a.model} · ${a.maxGross}</span>`;
+    if (a.verify) badge += `<span style="color:var(--warn); margin-left:2px;">▲</span>`;
+    btn.innerHTML = `<strong>${a.tail}</strong> ${badge}`;
+    btn.onclick = () => {
+      currentTail = a.tail;
+      saveTail(a.tail);
+      renderPicker();
+      calculate();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function applyTypeDefaults(T) {
+  const fob = document.getElementById('inp-fob');
+  fob.max = T.usableGal;
+  fob.value = T.usableGal;
+  document.getElementById('inp-taxi').value = T.taxiDefault;
+  document.getElementById('inp-burnrate').value = T.burnRateDefault.toFixed(1);
+}
+
+function applyTypeUI(T) {
+  document.getElementById('lbl-front').innerText = T.frontLabel;
+  document.getElementById('lbl-row2').innerText = T.row2Label + ' (lb)';
+  document.getElementById('help-row2').innerText = T.row2Helper;
+  document.getElementById('lbl-row3').innerText = T.row3Label + ' (lb)';
+  document.getElementById('help-row3').innerText = T.row3Helper;
+  document.getElementById('row2-label').innerText = T.row2Label;
+  document.getElementById('row3-label').innerText = T.row3Label;
+  const note = document.getElementById('fuel-note');
+  note.innerText = T.fuelNote;
+  note.style.display = T.fuelNote ? '' : 'none';
+  setCell('a_front', T.arms.front, 2);
+  setCell('a_row2', T.arms.row2, 2);
+  setCell('a_row3', T.arms.row3, 2);
+  setCell('a_fob', T.fuelArmDisplay ?? T.arms.fuel, 2);
+  setCell('a_burn', T.fuelArmDisplay ?? T.arms.fuel, 2);
+}
+
+function getVal(id) {
+  let val = document.getElementById(id).value;
+  if (val === '') return 0;
+  let v = parseFloat(val);
+  return isNaN(v) || v < 0 ? 0 : v;
+}
+
+function setCell(id, val, dp) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const text = (val === null || val === undefined || isNaN(val)) ? '—' : val.toFixed(dp);
+  if (el.innerText !== text) {
+    el.innerText = text;
+    el.classList.remove('pulse-highlight');
+    void el.offsetWidth;
+    if (text !== '—') el.classList.add('pulse-highlight');
+  }
+}
+
+function getEnvelopePoly(model, type, maxGross) {
+  return ENVELOPES[model][type].map(pt => {
+    let y = pt[1];
+    if (model === 'NM' && y === 2300) y = maxGross;
+    return [pt[0], y];
+  });
+}
+
+function isPointOnSegment(px, py, x1, y1, x2, y2) {
+  const epsilon = 0.01;
+  const cross = Math.abs((py - y1) * (x2 - x1) - (px - x1) * (y2 - y1));
+  if (cross > epsilon) return false;
+  const dot = (px - x1) * (x2 - x1) + (py - y1) * (y2 - y1);
+  if (dot < -epsilon) return false;
+  const sqLen = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+  if (dot > sqLen + epsilon) return false;
+  return true;
+}
+
+function pointInPoly(pt, poly) {
+  let [x, y] = pt;
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    let [xi, yi] = poly[i];
+    let [xj, yj] = poly[j];
+    if (isPointOnSegment(x, y, xi, yi, xj, yj)) return true;
+    let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function getPerfTableValues(table, pa, oat) {
+  let clamped = false;
+  let safePa = pa;
+  let safeOat = oat;
+  
+  if (safePa < 0) { safePa = 0; clamped = true; }
+  if (safeOat < 0) { safeOat = 0; clamped = true; }
+  
+  if (safePa > 8000 || safeOat > 40) return null;
+  
+  const temps = table.temps; 
+  const rows = table.rows; 
+  
+  let r1 = 0, r2 = 0;
+  for(let i=0; i<rows.length; i++) {
+    if (rows[i].pa >= safePa) {
+      r2 = i;
+      r1 = Math.max(0, i - 1);
+      if (rows[i].pa === safePa) r1 = i;
+      break;
+    }
+  }
+  
+  let c1 = 0, c2 = 0;
+  for(let i=0; i<temps.length; i++) {
+    if (temps[i] >= safeOat) {
+      c2 = i;
+      c1 = Math.max(0, i - 1);
+      if (temps[i] === safeOat) c1 = i;
+      break;
+    }
+  }
+  
+  let v11 = rows[r1].cells[c1];
+  let v12 = rows[r1].cells[c2];
+  let v21 = rows[r2].cells[c1];
+  let v22 = rows[r2].cells[c2];
+  
+  if (!v11 || !v12 || !v21 || !v22) return null;
+  
+  let f_pa = (r1 === r2) ? 0 : (safePa - rows[r1].pa) / (rows[r2].pa - rows[r1].pa);
+  let f_temp = (c1 === c2) ? 0 : (safeOat - temps[c1]) / (temps[c2] - temps[c1]);
+  
+  let lerp = (a, b, t) => a + (b - a) * t;
+  
+  let ground1 = lerp(v11[0], v12[0], f_temp);
+  let ground2 = lerp(v21[0], v22[0], f_temp);
+  let ground = lerp(ground1, ground2, f_pa);
+  
+  let over1 = lerp(v11[1], v12[1], f_temp);
+  let over2 = lerp(v21[1], v22[1], f_temp);
+  let over = lerp(over1, over2, f_pa);
+  
+  return [Math.ceil(ground/5)*5, Math.ceil(over/5)*5, clamped]; 
+}
+
+function updateStatus(ac, T, toW, toCg, landW, landCg, rampW, fob, burn, burnWarn) {
+  let strip = document.getElementById('status-strip');
+  strip.innerHTML = '';
+
+  const addChip = (cls, text) => {
+    let div = document.createElement('div');
+    div.className = 'chip ' + cls;
+    div.innerText = text;
+    strip.appendChild(div);
+  };
+
+  let normalPoly = getEnvelopePoly(ac.model, 'normal', ac.maxGross);
+  let utilityPoly = T.hasUtility ? getEnvelopePoly(ac.model, 'utility', ac.maxGross) : null;
+  let aftLimit = Math.max(...normalPoly.map(p => p[0]));
+
+  if (ac.verify) {
+    addChip('warn', 'School data flagged — confirm against aircraft W&B records');
+  }
+
+  if (toW > ac.maxGross) {
+    addChip('fail', `Over max gross by ${(toW - ac.maxGross).toFixed(1)} lb`);
+  } else {
+    addChip('ok', `Weight ≤ Gross (${ac.maxGross})`);
+  }
+
+  if (rampW > ac.maxGross + T.rampAllowance) {
+    addChip('fail', `Ramp weight > limit (${ac.maxGross + T.rampAllowance})`);
+  }
+
+  let toIn = pointInPoly([toCg, toW], normalPoly);
+  let landIn = pointInPoly([landCg, landW], normalPoly);
+
+  if (!toIn) {
+    if (toCg > aftLimit) addChip('fail', `Take-off CG ${(toCg - aftLimit).toFixed(2)} in aft of limit`);
+    else addChip('fail', 'Take-off CG Out of Envelope');
+  } else {
+    addChip('ok', 'Take-off CG Normal');
+  }
+
+  if (!landIn) addChip('fail', 'Landing CG Out of Envelope');
+  else addChip('ok', 'Landing CG Normal');
+
+  if (utilityPoly && pointInPoly([toCg, toW], utilityPoly) && pointInPoly([landCg, landW], utilityPoly)) {
+    addChip('info', 'Qualifies for Utility Category');
+  }
+  if (!T.hasUtility) {
+    addChip('info', 'Utility category aircraft');
+  }
+
+  let wRow2 = getVal('inp-rear');
+  let wRow3 = getVal('inp-baggage');
+  if (T === TYPES['172']) {
+    if (wRow3 > 120) addChip('warn', 'Baggage over 120 lb limit');
+  } else {
+    if (wRow2 > 120) addChip('warn', 'Baggage Area 1 over 120 lb limit');
+    if (wRow3 > 40) addChip('warn', 'Baggage Area 2 over 40 lb limit');
+    if (wRow2 + wRow3 > 120) addChip('warn', 'Combined baggage over 120 lb limit');
+  }
+
+  let dayNight = document.getElementById('inp-daynight').value;
+  let rate = parseFloat(document.getElementById('inp-burnrate').value) || T.burnRateDefault;
+  let landedFuel = fob - burn;
+  let req = rate * (dayNight === 'day' ? 0.5 : 1.0);
+  if (landedFuel < req) {
+    addChip('fail', `Min Reserve Violation (Landed ${landedFuel.toFixed(1)} < Req ${req.toFixed(1)} gal)`);
+  } else {
+    addChip('ok', `Fuel Reserves OK`);
+  }
+
+  if (burnWarn) {
+    addChip('warn', 'Fuel burn clamped to fuel on board');
+  }
+}
+
+function drawPlot(ac, T, cgTo, toW, cgLand, landW) {
+  const svg = document.getElementById('cg-plot');
+  if (!ac) { svg.innerHTML = ''; return; }
+
+  const padX = 60, padY = 50;
+  const W = 1000, H = 600;
+  const xMin = T.plot.xMin, xMax = T.plot.xMax;
+  const yMin = T.plot.yMin, yMax = ac.maxGross + 100;
+
+  const mapX = x => padX + ((x - xMin) / (xMax - xMin)) * (W - 2 * padX);
+  const mapY = y => (H - padY) - ((y - yMin) / (yMax - yMin)) * (H - 2 * padY);
+
+  let normalPoly = getEnvelopePoly(ac.model, 'normal', ac.maxGross);
+  let utilityPoly = T.hasUtility ? getEnvelopePoly(ac.model, 'utility', ac.maxGross) : null;
+
+  let html = '';
+  
+  for (let x = xMin; x <= xMax; x += 1) {
+    let mx = mapX(x);
+    html += `<line x1="${mx}" y1="${padY}" x2="${mx}" y2="${H - padY}" stroke="var(--powder)" stroke-width="1" />`;
+    html += `<text x="${mx}" y="${H - padY + 20}" text-anchor="middle" font-size="14" fill="var(--slate)">${x}</text>`;
+    let mm = Math.round(x * 25.4);
+    html += `<text x="${mx}" y="${padY - 15}" text-anchor="middle" font-size="12" fill="var(--slate)">${mm}</text>`;
+  }
+  
+  for (let y = yMin; y <= yMax; y += 100) {
+    let my = mapY(y);
+    html += `<line x1="${padX}" y1="${my}" x2="${W - padX}" y2="${my}" stroke="var(--powder)" stroke-width="1" />`;
+    html += `<text x="${padX - 10}" y="${my + 5}" text-anchor="end" font-size="14" fill="var(--slate)">${y}</text>`;
+  }
+  
+  html += `<text x="${W/2}" y="${H - 5}" text-anchor="middle" font-size="16" fill="var(--slate)">Loaded CG (Inches Aft of Datum)</text>`;
+  html += `<text x="${W/2}" y="${18}" text-anchor="middle" font-size="14" fill="var(--slate)">Loaded CG (Millimeters)</text>`;
+  html += `<text x="${18}" y="${H/2}" transform="rotate(-90 18 ${H/2})" text-anchor="middle" font-size="16" fill="var(--slate)">Loaded Weight (lb)</text>`;
+  
+  const polyStr = pts => pts.map(p => `${mapX(p[0])},${mapY(p[1])}`).join(' ');
+  html += `<polygon points="${polyStr(normalPoly)}" fill="var(--accent)" fill-opacity="0.08" stroke="var(--accent)" stroke-width="2"/>`;
+  if (utilityPoly) {
+    html += `<polygon points="${polyStr(utilityPoly)}" fill="none" stroke="var(--slate)" stroke-width="2" stroke-dasharray="6,4"/>`;
+    const lx = W - padX - 212, ly = padY + 10;
+    html += `<rect x="${lx}" y="${ly}" width="200" height="58" rx="6" fill="var(--surface)" stroke="var(--powder)"/>`;
+    html += `<line x1="${lx + 12}" y1="${ly + 18}" x2="${lx + 42}" y2="${ly + 18}" stroke="var(--accent)" stroke-width="2"/>`;
+    html += `<text x="${lx + 50}" y="${ly + 23}" font-size="13" fill="var(--slate)">Normal category</text>`;
+    html += `<line x1="${lx + 12}" y1="${ly + 42}" x2="${lx + 42}" y2="${ly + 42}" stroke="var(--slate)" stroke-width="2" stroke-dasharray="6,4"/>`;
+    html += `<text x="${lx + 50}" y="${ly + 47}" font-size="13" fill="var(--slate)">Utility category</text>`;
+  } else {
+    const xs = normalPoly.map(p => p[0]);
+    const cx = mapX((Math.min(...xs) + Math.max(...xs)) / 2);
+    const cy = mapY((yMin + ac.maxGross) / 2);
+    html += `<text x="${cx}" y="${cy}" text-anchor="middle" font-size="18" font-weight="bold" letter-spacing="2" fill="var(--slate)">UTILITY CATEGORY</text>`;
+    html += `<text x="${cx}" y="${cy + 22}" text-anchor="middle" font-size="13" fill="var(--slate)">entire envelope</text>`;
+  }
+  
+  let toIn = pointInPoly([cgTo, toW], normalPoly) && toW <= ac.maxGross;
+  let landIn = pointInPoly([cgLand, landW], normalPoly) && landW <= ac.maxGross;
+  
+  let cTo = toIn ? 'var(--accent)' : 'var(--fail)';
+  let cLand = landIn ? 'var(--accent)' : 'var(--fail)';
+  
+  html += `<line x1="${mapX(cgTo)}" y1="${mapY(toW)}" x2="${mapX(cgLand)}" y2="${mapY(landW)}" stroke="var(--slate)" stroke-width="2" />`;
+  html += `<circle cx="${mapX(cgTo)}" cy="${mapY(toW)}" r="6" fill="${cTo}" />`;
+  html += `<circle cx="${mapX(cgLand)}" cy="${mapY(landW)}" r="6" fill="${cLand}" stroke="${cLand}" stroke-width="2"/>`;
+  html += `<circle cx="${mapX(cgLand)}" cy="${mapY(landW)}" r="4" fill="var(--surface)" />`;
+  
+  html += `<text x="${mapX(cgTo) + 10}" y="${mapY(toW) + 5}" font-size="14" font-weight="bold" fill="${cTo}">T</text>`;
+  html += `<text x="${mapX(cgLand) + 10}" y="${mapY(landW) + 5}" font-size="14" font-weight="bold" fill="${cLand}">L</text>`;
+  
+  svg.innerHTML = html;
+}
+
+function updatePerf(ac) {
+  let feRaw = document.getElementById('inp-fe').value;
+  let altRaw = document.getElementById('inp-alt').value;
+  let oatRaw = document.getElementById('inp-oat').value;
+  
+  const out = document.getElementById('perf-output');
+  if (feRaw === '' || altRaw === '' || oatRaw === '') {
+    out.innerHTML = '<span style="color:var(--slate)">Enter FE, ALT, and OAT to compute performance.</span>';
+    return;
+  }
+  
+  let fe = parseFloat(feRaw);
+  let alt = parseFloat(altRaw);
+  let oat = parseFloat(oatRaw);
+  
+  let pa = fe + (29.92 - alt) * 1000;
+  let isa = 15 - 2 * (pa / 1000);
+  let da = pa + 120 * (oat - isa);
+  
+  let p = PERF[ac.model];
+  let to = getPerfTableValues(p.takeoff, pa, oat);
+  let ld = getPerfTableValues(p.landing, pa, oat);
+  
+  let html = `<div style="display:flex; gap:24px; margin-bottom:12px; font-size: 1rem;">
+    <div><strong>PA:</strong> ${Math.round(pa)} ft</div>
+    <div><strong>DA:</strong> ${Math.round(da)} ft</div>
+  </div>`;
+
+  const spd = p.takeoffSpeedsKIAS;
+  html += `<div class="helper" style="margin-bottom:12px;">${p.label} — lift-off ${spd.liftoff} · at 50 ft ${spd.at50ft} · landing ${p.landingSpeedKIAS} KIAS</div>`;
+  
+  const renderRow = (title, data) => {
+    if (!data) {
+      return `<div style="color:var(--fail); font-weight:bold;">${title}: Beyond chart data — see POH / instructor.</div>`;
+    }
+    let note = data[2] ? ' <span style="color:var(--warn); font-size:0.85rem;">(clamped to chart edge — conservative)</span>' : '';
+    return `<div><strong>${title}:</strong> ${data[0]} ft ground roll / ${data[1]} ft total over 50-ft obs${note}</div>`;
+  };
+  
+  html += renderRow('Take-off', to);
+  html += renderRow('Landing', ld);
+  
+  out.innerHTML = html;
+}
+
+function setNote(id, text, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerText = text;
+  el.className = 'kpi-note ' + cls;
+}
+function updateHero(ac, T, toW, cgTo, remaining) {
+  document.getElementById('hero-tail').innerText = ac.tail;
+  document.getElementById('hero-meta').innerText = modelLabel(ac).toUpperCase() + ' · MAX ' + ac.maxGross + ' LB' + (ac.verify ? ' · VERIFY W&B DATA' : '');
+  document.getElementById('kpi-tow').innerText = toW.toFixed(1);
+  const margin = ac.maxGross - toW;
+  if (margin >= 0) setNote('kpi-tow-note', margin.toFixed(0) + ' LB UNDER GROSS', 'ok');
+  else setNote('kpi-tow-note', 'OVER GROSS BY ' + (-margin).toFixed(0) + ' LB', 'fail');
+  document.getElementById('kpi-cg').innerText = cgTo.toFixed(2);
+  const normalPoly = getEnvelopePoly(ac.model, 'normal', ac.maxGross);
+  if (pointInPoly([cgTo, toW], normalPoly)) setNote('kpi-cg-note', T.hasUtility ? 'NORMAL CATEGORY' : 'UTILITY CATEGORY', 'ok');
+  else setNote('kpi-cg-note', 'OUT OF ENVELOPE', 'fail');
+  document.getElementById('kpi-useful').innerText = remaining.toFixed(1);
+  if (remaining >= 0) setNote('kpi-useful-note', 'LB STILL AVAILABLE', 'ok');
+  else setNote('kpi-useful-note', 'OVERLOADED', 'fail');
+}
+function clearHero() {
+  ['hero-tail','kpi-tow','kpi-cg','kpi-useful'].forEach(id => document.getElementById(id).innerText = '—');
+  document.getElementById('hero-meta').innerText = 'PICK A TAIL NUMBER TO BEGIN';
+  ['kpi-tow-note','kpi-cg-note','kpi-useful-note'].forEach(id => setNote(id, '', 'ok'));
+}
+function clearAll() {
+  clearHero();
+  ['w_bew','a_bew','m_bew','w_front','a_front','m_front','w_rear','a_row2','m_rear','w_baggage','a_row3','m_baggage','w_zfw','a_zfw','m_zfw','w_fob','a_fob','m_fob','w_ramp','a_ramp','m_ramp','w_to','a_to','m_to','w_burn','a_burn','m_burn','w_land','a_land','m_land'].forEach(id => setCell(id, null));
+  document.getElementById('status-strip').innerHTML = '<div class="chip info">Pick a tail number to begin.</div>';
+  document.getElementById('cg-plot').innerHTML = '';
+  document.getElementById('useful-load-remaining').innerText = '—';
+}
+
+function calculate() {
+  const ac = AIRCRAFT.find(a => a.tail === currentTail);
+  if (!ac) {
+    clearAll();
+    return;
+  }
+
+  const T = typeOf(ac);
+  if (appliedType !== T) {
+    applyTypeDefaults(T);
+    appliedType = T;
+  }
+  applyTypeUI(T);
+
+  let wFront = getVal('inp-front');
+  let wRear = getVal('inp-rear');
+  let wBag = getVal('inp-baggage');
+
+  let galFobRaw = document.getElementById('inp-fob').value;
+  let galFob = galFobRaw === '' ? T.usableGal : getVal('inp-fob');
+  if (galFob > T.usableGal) galFob = T.usableGal;
+  
+  let burnInput = getVal('inp-burn');
+  let burnUnit = document.getElementById('inp-burn-unit').value;
+  let galBurn = burnUnit === 'gal' ? burnInput : burnInput / FUEL_LB_PER_GAL;
+  
+  let burnWarn = false;
+  if (galBurn > galFob) {
+    galBurn = galFob;
+    if (document.getElementById('inp-burn').value !== '') {
+      burnWarn = true;
+    }
+  }
+  
+  let wFob = galFob * FUEL_LB_PER_GAL;
+  let wBurn = galBurn * FUEL_LB_PER_GAL;
+  
+  let taxiWeightRaw = document.getElementById('inp-taxi').value;
+  let taxiWeight = taxiWeightRaw === '' ? 0 : parseFloat(taxiWeightRaw);
+  let taxiMoment = taxiWeight * T.arms.fuel;
+  
+  let zfw = ac.emptyWeight + wFront + wRear + wBag;
+  let rampWeight = zfw + wFob;
+  let toWeight = rampWeight + taxiWeight;
+  let landWeight = toWeight - wBurn;
+  
+  let mFront = wFront * T.arms.front;
+  let mRear = wRear * T.arms.row2;
+  let mBag = wBag * T.arms.row3;
+
+  let mZfw = ac.emptyMoment + mFront + mRear + mBag;
+  let mFob = wFob * T.arms.fuel;
+  let mRamp = mZfw + mFob;
+  let mTo = mRamp + taxiMoment;
+  let mBurn = wBurn * T.arms.fuel;
+  let mLand = mTo - mBurn;
+  
+  let cgZfw = zfw > 0 ? mZfw / zfw : 0;
+  let cgRamp = rampWeight > 0 ? mRamp / rampWeight : 0;
+  let cgTo = toWeight > 0 ? mTo / toWeight : 0;
+  let cgLand = landWeight > 0 ? mLand / landWeight : 0;
+  
+  setCell('w_bew', ac.emptyWeight, 1);
+  setCell('a_bew', ac.emptyMoment / ac.emptyWeight, 2);
+  setCell('m_bew', ac.emptyMoment, 1);
+  
+  setCell('w_front', wFront, 1);
+  setCell('m_front', mFront, 1);
+  
+  setCell('w_rear', wRear, 1);
+  setCell('m_rear', mRear, 1);
+  
+  setCell('w_baggage', wBag, 1);
+  setCell('m_baggage', mBag, 1);
+  
+  setCell('w_zfw', zfw, 1);
+  setCell('a_zfw', cgZfw, 2);
+  setCell('m_zfw', mZfw, 1);
+  
+  setCell('w_fob', wFob, 1);
+  setCell('m_fob', mFob, 1);
+  
+  setCell('w_ramp', rampWeight, 1);
+  setCell('a_ramp', cgRamp, 2);
+  setCell('m_ramp', mRamp, 1);
+  
+  setCell('m_taxi', taxiMoment, 1);
+  
+  setCell('w_to', toWeight, 1);
+  setCell('a_to', cgTo, 2);
+  setCell('m_to', mTo, 1);
+  
+  setCell('w_burn', -wBurn, 1);
+  setCell('m_burn', -mBurn, 1);
+  
+  setCell('w_land', landWeight, 1);
+  setCell('a_land', cgLand, 2);
+  setCell('m_land', mLand, 1);
+
+  document.getElementById('fob-lb').innerText = wFob.toFixed(1);
+  document.getElementById('burn-converted').innerText = burnUnit === 'gal' ? wBurn.toFixed(1) : galBurn.toFixed(1);
+  document.getElementById('burn-converted-unit').innerText = burnUnit === 'gal' ? 'lb' : 'gal';
+  
+  let payload = wFront + wRear + wBag;
+  let remaining = (ac.maxGross - ac.emptyWeight) - payload - wFob;
+  document.getElementById('useful-load-remaining').innerText = remaining.toFixed(1) + ' lb';
+
+  updateHero(ac, T, toWeight, cgTo, remaining);
+  updateStatus(ac, T, toWeight, cgTo, landWeight, cgLand, rampWeight, galFob, galBurn, burnWarn);
+  drawPlot(ac, T, cgTo, toWeight, cgLand, landWeight);
+  updatePerf(ac);
+}
+
+function initCalcApp() {
+  renderTabs();
+  renderPicker();
+
+  document.querySelectorAll('input, select').forEach(inp => {
+    inp.addEventListener('input', calculate);
+  });
+
+  calculate();
+}
+
+const FLEET = AIRCRAFT;
+const KHWO = { lat: 26.0012, lon: -80.2407 };
+const FLEET_API = 'https://api.airplanes.live/v2/hex/' + FLEET.map(a => a.hex).join(',');
+const FLEET_REFRESH_MS = 10000;
+const FLEET_CACHE_KEY = 'wayman-fleet-lastseen';
+const FLEET_STALE_MS = 120000;
+
+let fleetCache = (() => {
+  try { return JSON.parse(localStorage.getItem(FLEET_CACHE_KEY)) || {}; } catch (e) { return {}; }
+})();
+let fleetFetchOk = null;
+let fleetFetchTime = null;
+
+function haversineNm(lat1, lon1, lat2, lon2) {
+  const R = 3440.065;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function bearingCompass(lat1, lon1, lat2, lon2) {
+  const toRad = d => d * Math.PI / 180;
+  const y = Math.sin(toRad(lon2 - lon1)) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - lon1));
+  const brg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(brg / 45) % 8];
+}
+
+function ago(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return s + 's ago';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ' + (m % 60) + 'm ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+function whereText(rec) {
+  const d = haversineNm(KHWO.lat, KHWO.lon, rec.lat, rec.lon);
+  if (d < 1.2) return 'at KHWO';
+  return d.toFixed(0) + ' nm ' + bearingCompass(KHWO.lat, KHWO.lon, rec.lat, rec.lon) + ' of KHWO';
+}
+
+function statusOf(hex) {
+  const rec = fleetCache[hex];
+  if (!rec) return { cls: 'off', label: 'No signal', detail: 'likely parked' };
+  const age = Date.now() - rec.ts;
+  if (age < FLEET_STALE_MS) {
+    if (rec.ground) return { cls: 'gnd', label: 'On ground', detail: whereText(rec) };
+    return {
+      cls: 'air', label: 'Airborne',
+      detail: (rec.alt || 0) + ' ft · ' + Math.round(rec.gs || 0) + ' kt · ' + whereText(rec),
+    };
+  }
+  return {
+    cls: age < 6 * 3600000 ? 'stale' : 'off',
+    label: 'Last seen ' + ago(age),
+    detail: (rec.ground ? 'on ground ' : 'airborne ') + whereText(rec),
+  };
+}
+
+let fleetMap = null;
+const markers = {};
+
+function planeIcon(track, color, tail, dim) {
+  const rot = typeof track === 'number' ? track : 0;
+  return L.divIcon({
+    className: 'plane-marker',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    html: `<div style="opacity:${dim ? 0.45 : 1}; position:relative;">
+      <svg width="24" height="24" viewBox="0 0 24 24" style="transform:rotate(${rot}deg)">
+        <path d="M12 2 L14 9 L21 11.5 L14 13 L13.5 19 L16 21.5 L12 20.5 L8 21.5 L10.5 19 L10 13 L3 11.5 L10 9 Z" fill="${color}"/>
+      </svg>
+      <span class="plane-label">${tail}</span>
+    </div>`,
+  });
+}
+
+function initFleetMap() {
+  if (typeof L === 'undefined') {
+    document.getElementById('map').innerHTML =
+      '<div style="padding:20px; color: var(--slate);">Map library failed to load — fleet list still works.</div>';
+    return;
+  }
+  fleetMap = L.map('map', { zoomControl: true }).setView([KHWO.lat, KHWO.lon], 10);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+  }).addTo(fleetMap);
+  L.circleMarker([KHWO.lat, KHWO.lon], {
+    radius: 7, color: '#E8C468', fillColor: '#E8C468', fillOpacity: 0.9,
+  }).addTo(fleetMap).bindPopup('<strong>KHWO</strong> — North Perry (home base)');
+}
+
+function updateMarkers() {
+  if (!fleetMap) return;
+  FLEET.forEach(a => {
+    const rec = fleetCache[a.hex];
+    if (!rec) return;
+    const st = statusOf(a.hex);
+    if (st.cls === 'off' && !markers[a.hex]) return;
+    const color = st.cls === 'air' ? '#6E9BE8' : st.cls === 'gnd' ? '#5BCB96' : '#6B7A94';
+    const dim = st.cls === 'stale' || st.cls === 'off';
+    const icon = planeIcon(rec.track, color, a.tail, dim);
+    const pos = [rec.lat, rec.lon];
+    if (markers[a.hex]) {
+      markers[a.hex].setLatLng(pos).setIcon(icon);
+    } else {
+      markers[a.hex] = L.marker(pos, { icon }).addTo(fleetMap);
+    }
+    markers[a.hex].bindPopup(
+      `<strong>${a.tail}</strong> · ${modelLabel(a)}<br>${st.label}<br>${st.detail}`
+    );
+  });
+}
+
+function fitFleet() {
+  if (!fleetMap) return;
+  const pts = [[KHWO.lat, KHWO.lon]];
+  FLEET.forEach(a => {
+    const st = statusOf(a.hex);
+    if (fleetCache[a.hex] && (st.cls === 'air' || st.cls === 'gnd')) {
+      pts.push([fleetCache[a.hex].lat, fleetCache[a.hex].lon]);
+    }
+  });
+  fleetMap.fitBounds(L.latLngBounds(pts).pad(0.3), { maxZoom: 12 });
+}
+
+function modelLabel(a) {
+  return a.model === '152' ? 'C-152' : 'C-172 ' + a.model;
+}
+
+function selectAircraft(a) {
+  currentTail = a.tail;
+  saveTail(a.tail);
+  currentType = typeKeyOf(a);
+  renderTabs();
+  renderPicker();
+  calculate();
+  renderFleetList();
+  const rec = fleetCache[a.hex];
+  if (fleetMap && rec) {
+    fleetMap.setView([rec.lat, rec.lon], 12);
+    if (markers[a.hex]) markers[a.hex].openPopup();
+  }
+}
+
+function renderFleetList() {
+  ['172', '152'].forEach(type => {
+    const el = document.getElementById('list-' + type);
+    el.innerHTML = '';
+    FLEET.filter(a => typeKeyOf(a) === type).forEach(a => {
+      const st = statusOf(a.hex);
+      const row = document.createElement('div');
+      row.className = 'fleet-row' + (a.tail === currentTail ? ' selected' : '');
+      row.dataset.tail = a.tail;
+      row.innerHTML =
+        `<span class="tail">${a.tail}</span>` +
+        `<span class="state ${st.cls}">${st.label}</span>` +
+        `<span class="detail">${st.detail}</span>`;
+      row.onclick = () => selectAircraft(a);
+      el.appendChild(row);
+    });
+  });
+}
+
+function renderFleetStatusbar() {
+  const dot = document.getElementById('src-dot');
+  const txt = document.getElementById('src-text');
+  if (fleetFetchOk === null) {
+    dot.className = 'dot';
+    txt.innerText = 'Connecting to live data…';
+  } else if (fleetFetchOk) {
+    dot.className = 'dot live';
+    const n = FLEET.filter(a => ['air', 'gnd'].includes(statusOf(a.hex).cls)).length;
+    txt.innerText = `Live · ${n} transmitting · updated ${ago(Date.now() - fleetFetchTime)}`;
+  } else {
+    dot.className = 'dot err';
+    txt.innerText = 'Data source unreachable — showing last known. Retrying…';
+  }
+  document.querySelectorAll('.fleet-row').forEach(r =>
+    r.classList.toggle('selected', r.dataset.tail === currentTail));
+}
+
+let fleetFirstFit = true;
+
+async function refreshFleet() {
+  try {
+    const res = await fetch(FLEET_API, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const now = Date.now();
+    (data.ac || []).forEach(ac => {
+      const hex = (ac.hex || '').toLowerCase();
+      if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') return;
+      fleetCache[hex] = {
+        lat: ac.lat,
+        lon: ac.lon,
+        alt: ac.alt_baro === 'ground' ? 0 : Math.round(ac.alt_baro || 0),
+        gs: ac.gs || 0,
+        track: typeof ac.track === 'number' ? ac.track : null,
+        ground: ac.alt_baro === 'ground',
+        ts: now - Math.round((ac.seen || 0) * 1000),
+      };
+    });
+    try { localStorage.setItem(FLEET_CACHE_KEY, JSON.stringify(fleetCache)); } catch (e) {}
+    fleetFetchOk = true;
+    fleetFetchTime = now;
+    if (fleetFirstFit) { fleetFirstFit = false; fitFleet(); }
+  } catch (e) {
+    fleetFetchOk = false;
+  }
+  renderFleetList();
+  updateMarkers();
+  renderFleetStatusbar();
+}
+
+function initFleetApp() {
+  initFleetMap();
+  renderFleetList();
+  renderFleetStatusbar();
+  refreshFleet();
+  setInterval(refreshFleet, FLEET_REFRESH_MS);
+  setInterval(renderFleetStatusbar, 1000);
+  document.getElementById('btn-refresh').onclick = refreshFleet;
+  document.getElementById('btn-fit').onclick = fitFleet;
+}
+
+initCalcApp();
+initFleetApp();
+</script>
+</body>
+</html>
