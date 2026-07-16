@@ -534,8 +534,9 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         <div class="helper num" id="wx-metar" style="margin: 0 0 14px; font-size: 12px; color: var(--sub); letter-spacing: 0.02em;">—</div>
         <div class="input-grid">
           <div class="form-group">
-            <label>Wind Direction (°M)</label>
+            <label>Wind Direction (°)</label>
             <input type="number" id="inp-wdir" min="0" max="360" step="10">
+            <div class="helper">METAR winds are true (+7° for magnetic at KHWO). ATIS/tower winds are already magnetic.</div>
           </div>
           <div class="form-group">
             <label>Wind Speed (kt)</label>
@@ -557,8 +558,9 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         <div class="helper" id="rwy-note" style="margin-top: 8px;"></div>
         <div class="input-grid" style="margin-top: 16px;">
           <div class="form-group">
-            <label>Course (°M)</label>
+            <label>Course (°)</label>
             <input type="number" id="inp-crs" min="0" max="360" step="1">
+            <div class="helper">Use the same reference (true or magnetic) as the wind above.</div>
           </div>
           <div class="form-group">
             <label>TAS (kt)</label>
@@ -567,8 +569,8 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         </div>
         <div class="helper" id="wca-output" style="margin-top: 8px; font-size: 13px; color: var(--ink);"></div>
         <div class="helper" style="margin-top: 12px; border-top: 1px solid var(--powder); padding-top: 12px;">
-          METAR wind is true north — converted here to magnetic (+7° W var) to match runway headings.
-          Always confirm with the ATIS/tower before flight ·
+          Values shown exactly as reported — no conversions applied for you. Runway numbers are magnetic;
+          METAR winds are true (+7° W variation at KHWO). Always confirm with the ATIS/tower before flight ·
           <a href="https://www.liveatc.net/search/?icao=KHWO" target="_blank" rel="noopener">Listen to KHWO on LiveATC ↗</a>
         </div>
       </div>
@@ -1313,7 +1315,6 @@ const RUNWAYS = [
   { name: 'RWY 1 (L/R)', hdg: 10 },
   { name: 'RWY 19 (L/R)', hdg: 190 },
 ];
-const MAG_VAR = 7; // °W at KHWO: magnetic ≈ true + 7
 const WX_URL = 'https://api.weather.gov/stations/KHWO/observations/latest';
 let wxTime = null;
 
@@ -1365,7 +1366,7 @@ async function fetchWx() {
     const spdKmh = p.windSpeed ? p.windSpeed.value : null;
     const gstKmh = p.windGust ? p.windGust.value : null;
     if (typeof dirTrue === 'number') {
-      document.getElementById('inp-wdir').value = Math.round(((dirTrue + MAG_VAR) % 360 + 360) % 360);
+      document.getElementById('inp-wdir').value = Math.round(dirTrue);
     }
     if (typeof spdKmh === 'number') {
       document.getElementById('inp-wspd').value = Math.round(spdKmh * 0.539957);
