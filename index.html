@@ -239,11 +239,6 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 }
 .focusbtn:hover { border-color: var(--accent); color: var(--ink); }
 .focusbtn.active { background: var(--accent); color: var(--paper); border-color: var(--accent); }
-.watch-barwrap { margin-top: 12px; }
-.watch-bar { height: 4px; background: var(--powder); }
-.watch-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 1s linear; }
-.watch-bar-fill.over { background: var(--warn); }
-.watch-verdict { font: 500 10px var(--mono); color: var(--slate); margin-top: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
 
 /* ---------- fleet filters ---------- */
 .filter-rows { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-bottom: 10px; }
@@ -270,6 +265,7 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   <nav class="jumpnav">
     <a href="#sec-wb">W&amp;B Table</a>
     <a href="#sec-perf">Performance</a>
+    <a href="#sec-wind">Winds</a>
     <a href="#sec-map">Map</a>
   </nav>
 </div>
@@ -315,10 +311,6 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
             <div class="watch-status" id="watch-status">Pick a tail number to watch it here.</div>
           </div>
           <button id="btn-focus" class="focusbtn">Focus</button>
-        </div>
-        <div class="watch-barwrap" id="watch-barwrap" style="display: none;">
-          <div class="watch-bar"><div class="watch-bar-fill" id="watch-bar-fill"></div></div>
-          <div class="watch-verdict" id="watch-verdict"></div>
         </div>
       </div>
       <div class="card">
@@ -531,6 +523,54 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
           Short field · at max gross · conservative — from the school performance card.
         </div>
       </div>
+
+      <div class="card" id="sec-wind" data-screen-label="Winds">
+        <div class="eyebrow">Winds — KHWO</div>
+        <div class="statusbar" style="margin-bottom: 14px;">
+          <span class="dot" id="wx-dot"></span>
+          <span id="wx-text">Fetching KHWO wind…</span>
+          <button id="btn-wx">Refresh</button>
+        </div>
+        <div class="input-grid">
+          <div class="form-group">
+            <label>Wind Direction (°M)</label>
+            <input type="number" id="inp-wdir" min="0" max="360" step="10">
+          </div>
+          <div class="form-group">
+            <label>Wind Speed (kt)</label>
+            <input type="number" id="inp-wspd" min="0" step="1">
+          </div>
+          <div class="form-group">
+            <label>Gust (kt)</label>
+            <input type="number" id="inp-wgst" min="0" step="1">
+          </div>
+        </div>
+        <div class="wb-table-wrapper" style="margin-top: 14px;">
+          <table>
+            <thead>
+              <tr><th>Runway</th><th>Headwind</th><th>Crosswind</th></tr>
+            </thead>
+            <tbody id="rwy-body"></tbody>
+          </table>
+        </div>
+        <div class="helper" id="rwy-note" style="margin-top: 8px;"></div>
+        <div class="input-grid" style="margin-top: 16px;">
+          <div class="form-group">
+            <label>Course (°M)</label>
+            <input type="number" id="inp-crs" min="0" max="360" step="1">
+          </div>
+          <div class="form-group">
+            <label>TAS (kt)</label>
+            <input type="number" id="inp-tas" min="1" step="1" value="110">
+          </div>
+        </div>
+        <div class="helper" id="wca-output" style="margin-top: 8px; font-size: 13px; color: var(--ink);"></div>
+        <div class="helper" style="margin-top: 12px; border-top: 1px solid var(--powder); padding-top: 12px;">
+          METAR wind is true north — converted here to magnetic (+7° W var) to match runway headings.
+          Always confirm with the ATIS/tower before flight ·
+          <a href="https://www.liveatc.net/search/?icao=KHWO" target="_blank" rel="noopener">Listen to KHWO on LiveATC ↗</a>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -585,6 +625,8 @@ const TYPES = {
     taxiDefault: -7,
     rampAllowance: 7,
     burnRateDefault: 8.0,
+    demoXwind: 15,
+    cruiseTAS: 110,
     plot: { xMin: 34, xMax: 48, yMin: 1500 },
     hasUtility: true,
   },
@@ -602,6 +644,8 @@ const TYPES = {
     taxiDefault: -6,
     rampAllowance: 5,
     burnRateDefault: 6.0,
+    demoXwind: 12,
+    cruiseTAS: 90,
     plot: { xMin: 30, xMax: 37, yMin: 1000 },
     hasUtility: false,
   },
@@ -797,6 +841,7 @@ function applyTypeDefaults(T) {
   fob.value = T.usableGal;
   document.getElementById('inp-taxi').value = T.taxiDefault;
   document.getElementById('inp-burnrate').value = T.burnRateDefault.toFixed(1);
+  document.getElementById('inp-tas').value = T.cruiseTAS;
 }
 
 function applyTypeUI(T) {
@@ -1258,6 +1303,123 @@ function calculate() {
   updateStatus(ac, T, toWeight, cgTo, landWeight, cgLand, rampWeight, galFob, galBurn, burnWarn);
   drawPlot(ac, T, cgTo, toWeight, cgLand, landWeight);
   updatePerf(ac);
+  updateWindCard();
+}
+
+const RUNWAYS = [
+  { name: 'RWY 10 (L/R)', hdg: 100 },
+  { name: 'RWY 28 (L/R)', hdg: 280 },
+  { name: 'RWY 1 (L/R)', hdg: 10 },
+  { name: 'RWY 19 (L/R)', hdg: 190 },
+];
+const MAG_VAR = 7; // °W at KHWO: magnetic ≈ true + 7
+const WX_URL = 'https://api.weather.gov/stations/KHWO/observations/latest';
+let wxTime = null;
+
+async function fetchWx() {
+  const dot = document.getElementById('wx-dot');
+  const txt = document.getElementById('wx-text');
+  try {
+    const res = await fetch(WX_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const p = (await res.json()).properties || {};
+    const dirTrue = p.windDirection ? p.windDirection.value : null;
+    const spdKmh = p.windSpeed ? p.windSpeed.value : null;
+    const gstKmh = p.windGust ? p.windGust.value : null;
+    if (typeof dirTrue === 'number') {
+      document.getElementById('inp-wdir').value = Math.round(((dirTrue + MAG_VAR) % 360 + 360) % 360);
+    }
+    if (typeof spdKmh === 'number') {
+      document.getElementById('inp-wspd').value = Math.round(spdKmh * 0.539957);
+    }
+    document.getElementById('inp-wgst').value = typeof gstKmh === 'number' ? Math.round(gstKmh * 0.539957) : '';
+    wxTime = p.timestamp ? new Date(p.timestamp).getTime() : Date.now();
+    dot.className = 'dot live';
+    txt.innerText = 'KHWO wind observed ' + ago(Date.now() - wxTime);
+    updateWindCard();
+  } catch (e) {
+    dot.className = 'dot err';
+    txt.innerText = 'Weather source unreachable — enter wind manually';
+  }
+}
+
+function windComponents(windDir, windSpd, hdg) {
+  const beta = (windDir - hdg) * Math.PI / 180;
+  // cross > 0 = wind from the right of that heading
+  return { head: windSpd * Math.cos(beta), cross: windSpd * Math.sin(beta) };
+}
+
+function updateWindCard() {
+  const body = document.getElementById('rwy-body');
+  if (!body) return;
+  const wdir = getVal('inp-wdir');
+  const wspd = getVal('inp-wspd');
+  const wgst = getVal('inp-wgst');
+  const ac = AIRCRAFT.find(a => a.tail === currentTail);
+  const demo = ac ? typeOf(ac).demoXwind : null;
+
+  let best = null;
+  const rows = RUNWAYS.map(r => {
+    const c = windComponents(wdir, wspd, r.hdg);
+    const g = wgst > wspd ? windComponents(wdir, wgst, r.hdg) : null;
+    if (!best || c.head > best.head) best = { name: r.name, head: c.head, cross: c.cross };
+    return { name: r.name, head: c.head, cross: c.cross, gCross: g ? g.cross : null };
+  });
+
+  body.innerHTML = rows.map(r => {
+    if (wspd === 0) {
+      return `<tr><td>${r.name}</td><td class="num">calm</td><td class="num">calm</td></tr>`;
+    }
+    const hwTxt = r.head >= -0.5
+      ? Math.abs(r.head).toFixed(0) + ' kt'
+      : Math.abs(r.head).toFixed(0) + ' kt TAIL';
+    const xwAbs = Math.abs(r.cross);
+    const gAbs = r.gCross !== null ? Math.abs(r.gCross) : null;
+    const xwTxt = xwAbs.toFixed(0) + (gAbs !== null ? 'G' + gAbs.toFixed(0) : '') + ' kt ' + (r.cross >= 0 ? 'R' : 'L');
+    const exceed = demo !== null && Math.max(xwAbs, gAbs || 0) > demo;
+    const hwStyle = r.head < -0.5 ? ' style="color: var(--fail);"' : '';
+    const xwStyle = exceed ? ' style="color: var(--warn);"' : '';
+    return `<tr><td>${r.name}</td><td class="num"${hwStyle}>${hwTxt}</td><td class="num"${xwStyle}>${xwTxt}</td></tr>`;
+  }).join('');
+
+  const note = document.getElementById('rwy-note');
+  if (wspd === 0) {
+    note.innerText = 'Wind calm — any runway works. Confirm with tower.';
+  } else {
+    const demoTxt = demo !== null && ac
+      ? ' · demonstrated crosswind ' + typeOf(ac).label + ': ' + demo + ' kt'
+      : '';
+    note.innerText = 'Best headwind: ' + best.name + ' · crosswind ' + Math.abs(best.cross).toFixed(0) + ' kt' + demoTxt;
+  }
+
+  const out = document.getElementById('wca-output');
+  const crsRaw = document.getElementById('inp-crs').value;
+  const tas = getVal('inp-tas');
+  if (crsRaw === '') {
+    out.innerText = 'Enter a course above to compute wind correction for a leg.';
+    return;
+  }
+  const crs = getVal('inp-crs');
+  if (!tas) {
+    out.innerText = 'Enter TAS to compute wind correction.';
+    return;
+  }
+  if (wspd === 0) {
+    out.innerText = 'Wind calm — WCA 0°, heading ' + crs.toFixed(0) + '°M, GS ' + tas.toFixed(0) + ' kt.';
+    return;
+  }
+  const beta = (wdir - crs) * Math.PI / 180;
+  const sinWca = wspd * Math.sin(beta) / tas;
+  if (Math.abs(sinWca) >= 1) {
+    out.innerText = 'Wind exceeds TAS — no crab angle can hold this course.';
+    return;
+  }
+  const wca = Math.asin(sinWca);
+  const gs = tas * Math.cos(wca) - wspd * Math.cos(beta);
+  const wcaDeg = wca * 180 / Math.PI;
+  const hdgOut = ((crs + wcaDeg) % 360 + 360) % 360;
+  out.innerText = 'WCA ' + (wcaDeg >= 0 ? '+' : '−') + Math.abs(wcaDeg).toFixed(0) + '° (crab ' +
+    (wcaDeg >= 0 ? 'right' : 'left') + ') · Heading ' + hdgOut.toFixed(0) + '°M · GS ' + Math.max(0, gs).toFixed(0) + ' kt';
 }
 
 function initCalcApp() {
@@ -1276,7 +1438,15 @@ function initCalcApp() {
     };
   });
 
+  ['inp-wdir', 'inp-wspd', 'inp-wgst', 'inp-crs', 'inp-tas'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateWindCard);
+  });
+  document.getElementById('btn-wx').onclick = fetchWx;
+  fetchWx();
+  setInterval(fetchWx, 5 * 60000);
+
   calculate();
+  updateWindCard();
 }
 
 const FLEET = AIRCRAFT;
@@ -1292,7 +1462,6 @@ let fleetCache = (() => {
 let fleetFetchOk = null;
 let fleetFetchTime = null;
 
-const BLOCK_MS = 1.8 * 3600000;
 let fltStatus = 'air';
 let fltType = 'all';
 let showGhosts = false;
@@ -1349,12 +1518,6 @@ function statusOf(hex) {
     label: 'Last seen ' + ago(age),
     detail: dHome < 3 ? 'likely back at KHWO' : 'last known ' + whereText(rec),
   };
-}
-
-function fmtDur(ms) {
-  const m = Math.max(0, Math.floor(ms / 60000));
-  const h = Math.floor(m / 60);
-  return h ? h + ' h ' + String(m % 60).padStart(2, '0') + ' m' : m + ' m';
 }
 
 function fmtShort(ms) {
@@ -1419,12 +1582,8 @@ function updateMarkers() {
     } else {
       markers[a.hex] = L.marker(pos, { icon }).addTo(fleetMap);
     }
-    let airLine = '';
-    if (st.cls === 'air' && rec.airSince) {
-      airLine = `<br>Airborne ${rec.airApprox ? '≥ ' : ''}${fmtDur(Date.now() - rec.airSince)}`;
-    }
     markers[a.hex].bindPopup(
-      `<strong>${a.tail}</strong> · ${modelLabel(a)}<br>${st.label}<br>${st.detail}${airLine}`
+      `<strong>${a.tail}</strong> · ${modelLabel(a)}<br>${st.label}<br>${st.detail}`
     );
   });
 }
@@ -1531,15 +1690,11 @@ function toggleFocus() {
 function updateWatch() {
   const tailEl = document.getElementById('watch-tail');
   const statusEl = document.getElementById('watch-status');
-  const barwrap = document.getElementById('watch-barwrap');
-  const fill = document.getElementById('watch-bar-fill');
-  const verdict = document.getElementById('watch-verdict');
   const btn = document.getElementById('btn-focus');
   const ac = AIRCRAFT.find(a => a.tail === currentTail);
   if (!ac) {
     tailEl.innerText = '—';
     statusEl.innerText = 'Pick a tail number to watch it here.';
-    barwrap.style.display = 'none';
     btn.classList.remove('active');
     return;
   }
@@ -1547,28 +1702,14 @@ function updateWatch() {
   btn.classList.toggle('active', focusTail === ac.tail);
   const rec = fleetCache[ac.hex];
   const st = statusOf(ac.hex);
-  if (st.cls === 'air' && rec && rec.airSince) {
-    const dur = Date.now() - rec.airSince;
-    statusEl.innerText = 'Airborne ' + (rec.airApprox ? '≥ ' : '') + fmtDur(dur) +
-      ' · ' + (rec.alt || 0) + ' ft · ' + Math.round(rec.gs || 0) + ' kt · ' + whereText(rec);
-    barwrap.style.display = '';
-    fill.style.width = Math.min(100, dur / BLOCK_MS * 100) + '%';
-    fill.classList.toggle('over', dur > BLOCK_MS);
-    let v;
-    if (dur > BLOCK_MS) v = 'Over the typical 1.8 h block — likely returning soon';
-    else if (dur > BLOCK_MS * 0.83) v = 'Approaching the 1.8 h block — expect it back shortly';
-    else v = 'Mid-block · typical Wayman block 1.8 h — could be a while';
-    if (rec.airApprox) v += ' · timed from first signal';
-    verdict.innerText = v;
+  if (st.cls === 'air' && rec) {
+    statusEl.innerText = 'Airborne · ' + (rec.alt || 0) + ' ft · ' + Math.round(rec.gs || 0) + ' kt · ' + whereText(rec);
   } else if (st.cls === 'gnd') {
     statusEl.innerText = 'On ground · ' + whereText(rec);
-    barwrap.style.display = 'none';
   } else if (st.cls === 'stale') {
     statusEl.innerText = st.label + ' · ' + st.detail;
-    barwrap.style.display = 'none';
   } else {
     statusEl.innerText = 'No signal — likely parked at KHWO';
-    barwrap.style.display = 'none';
   }
 }
 
@@ -1603,22 +1744,7 @@ async function refreshFleet() {
     (data.ac || []).forEach(ac => {
       const hex = (ac.hex || '').toLowerCase();
       if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') return;
-      const prev = fleetCache[hex];
       const ground = ac.alt_baro === 'ground';
-      const ts = now - Math.round((ac.seen || 0) * 1000);
-      let airSince = null, airApprox = false;
-      if (!ground) {
-        const prevFresh = prev && (ts - prev.ts) < 30 * 60000;
-        if (prevFresh && !prev.ground && prev.airSince) {
-          airSince = prev.airSince;
-          airApprox = !!prev.airApprox;
-        } else if (prevFresh && prev.ground) {
-          airSince = ts;
-        } else {
-          airSince = ts;
-          airApprox = true;
-        }
-      }
       fleetCache[hex] = {
         lat: ac.lat,
         lon: ac.lon,
@@ -1626,9 +1752,7 @@ async function refreshFleet() {
         gs: ac.gs || 0,
         track: typeof ac.track === 'number' ? ac.track : null,
         ground,
-        ts,
-        airSince,
-        airApprox,
+        ts: now - Math.round((ac.seen || 0) * 1000),
       };
     });
     try { localStorage.setItem(FLEET_CACHE_KEY, JSON.stringify(fleetCache)); } catch (e) {}
