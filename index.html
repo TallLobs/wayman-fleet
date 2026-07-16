@@ -526,11 +526,12 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 
       <div class="card" id="sec-wind" data-screen-label="Winds">
         <div class="eyebrow">Winds — KHWO</div>
-        <div class="statusbar" style="margin-bottom: 14px;">
+        <div class="statusbar" style="margin-bottom: 8px;">
           <span class="dot" id="wx-dot"></span>
           <span id="wx-text">Fetching KHWO wind…</span>
           <button id="btn-wx">Refresh</button>
         </div>
+        <div class="helper num" id="wx-metar" style="margin: 0 0 14px; font-size: 12px; color: var(--sub); letter-spacing: 0.02em;">—</div>
         <div class="input-grid">
           <div class="form-group">
             <label>Wind Direction (°M)</label>
@@ -1316,6 +1317,42 @@ const MAG_VAR = 7; // °W at KHWO: magnetic ≈ true + 7
 const WX_URL = 'https://api.weather.gov/stations/KHWO/observations/latest';
 let wxTime = null;
 
+// Rebuild a METAR-format line from NWS parsed fields (AWC's raw-text API
+// does not permit cross-origin browser requests, so raw text is unavailable).
+function buildMetar(p) {
+  const pad = (n, w) => String(n).padStart(w, '0');
+  const parts = ['KHWO'];
+  if (p.timestamp) {
+    const d = new Date(p.timestamp);
+    parts.push(pad(d.getUTCDate(), 2) + pad(d.getUTCHours(), 2) + pad(d.getUTCMinutes(), 2) + 'Z');
+  }
+  const num = f => (p[f] && typeof p[f].value === 'number' ? p[f].value : null);
+  const spd = num('windSpeed') !== null ? Math.round(num('windSpeed') * 0.539957) : null;
+  const gst = num('windGust') !== null ? Math.round(num('windGust') * 0.539957) : null;
+  const dir = num('windDirection') !== null ? Math.round(num('windDirection')) : null;
+  if (spd !== null) {
+    if (spd === 0) parts.push('00000KT');
+    else parts.push((dir !== null ? pad(dir, 3) : 'VRB') + pad(spd, 2) + (gst !== null && gst > spd ? 'G' + pad(gst, 2) : '') + 'KT');
+  }
+  if (num('visibility') !== null) {
+    const sm = num('visibility') / 1609.344;
+    parts.push((sm >= 10 ? '10' : sm.toFixed(sm < 3 ? 1 : 0)) + 'SM');
+  }
+  (p.cloudLayers || []).forEach(l => {
+    if (!l.amount) return;
+    if (l.amount === 'CLR' || l.amount === 'SKC') { parts.push(l.amount); return; }
+    const base = l.base && typeof l.base.value === 'number' ? pad(Math.round(l.base.value * 3.28084 / 100), 3) : '';
+    parts.push(l.amount + base);
+  });
+  const fmtT = v => (v < 0 ? 'M' + pad(Math.abs(v), 2) : pad(v, 2));
+  const t = num('temperature'), td = num('dewpoint');
+  if (t !== null && td !== null) parts.push(fmtT(Math.round(t)) + '/' + fmtT(Math.round(td)));
+  if (num('barometricPressure') !== null) {
+    parts.push('A' + pad(Math.round(num('barometricPressure') / 3386.389 * 100), 4));
+  }
+  return parts.join(' ');
+}
+
 async function fetchWx() {
   const dot = document.getElementById('wx-dot');
   const txt = document.getElementById('wx-text');
@@ -1323,6 +1360,7 @@ async function fetchWx() {
     const res = await fetch(WX_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const p = (await res.json()).properties || {};
+    document.getElementById('wx-metar').innerText = buildMetar(p) + ' — decoded from NWS, not the official raw text';
     const dirTrue = p.windDirection ? p.windDirection.value : null;
     const spdKmh = p.windSpeed ? p.windSpeed.value : null;
     const gstKmh = p.windGust ? p.windGust.value : null;
