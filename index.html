@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Wayman Fleet — W&B + Live Map</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -182,12 +181,8 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 }
 
 /* ---------- map + fleet ---------- */
-#map { width: 100%; height: 42vh; min-height: 300px; border: 1px solid var(--powder); background: var(--surface); }
+#map { display: block; width: 100%; height: 42vh; min-height: 300px; border: 1px solid var(--powder); background: var(--surface); }
 @media (min-width: 1100px) { #map { height: 44vh; } }
-.leaflet-container { background: var(--surface); font: inherit; }
-.leaflet-control-zoom, .leaflet-control-attribution { display: none; }
-.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface2); color: var(--ink); border-radius: 0; }
-.leaflet-marker-icon { transition: transform 1.2s linear; }
 .plane-marker svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
 .plane-label {
   font: 700 10.5px var(--mono); color: var(--ink);
@@ -305,38 +300,21 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   <div class="layout">
     <section class="map-pane" id="sec-map" data-screen-label="Live map + fleet">
       <div class="card">
-        <div class="watch-row">
-          <div>
-            <div class="watch-tail" id="watch-tail">—</div>
-            <div class="watch-status" id="watch-status">Pick a tail number to watch it here.</div>
-          </div>
-          <button id="btn-focus" class="focusbtn">Focus</button>
-        </div>
-      </div>
-      <div class="card">
         <div class="statusbar">
-          <span class="dot" id="src-dot"></span>
-          <span id="src-text">Connecting to live data…</span>
-          <button id="btn-refresh">Refresh</button>
-          <button id="btn-fit">Fit fleet</button>
-          <button id="btn-ghosts" title="Show last-known positions of aircraft that stopped transmitting">Ghosts</button>
+          <span class="dot live"></span>
+          <span>Live map — Wayman aircraft only (via airplanes.live)</span>
+          <a id="lnk-globe" href="#" target="_blank" rel="noopener" style="margin-left:auto; color: var(--slate);">Open full map ↗</a>
         </div>
       </div>
-      <div id="map"></div>
+      <iframe id="map" title="Live Wayman fleet map"></iframe>
       <div class="card" id="sec-fleet">
-        <div class="eyebrow">Fleet Status — Live</div>
+        <div class="eyebrow">Fleet — tap a tail to load it in the calculator</div>
         <div class="filter-rows">
-          <div class="filterset" id="filter-status">
-            <button class="fbtn" data-v="all">All</button>
-            <button class="fbtn active" data-v="air">Airborne</button>
-            <button class="fbtn" data-v="gnd">Ground</button>
-          </div>
           <div class="filterset" id="filter-type">
             <button class="fbtn active" data-v="all">All</button>
             <button class="fbtn" data-v="172">C-172</button>
             <button class="fbtn" data-v="152">C-152</button>
           </div>
-          <span class="filter-count" id="filter-count"></span>
         </div>
         <div class="fleet-scroll">
           <div class="fleet-list" id="list-172"></div>
@@ -344,9 +322,8 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
           <div class="fleet-list" id="list-152"></div>
         </div>
         <div class="helper" style="margin-top: 10px;">
-          A parked aircraft with the master off transmits nothing — "No signal" usually means it's on the ramp.
-          "Ghosts" shows the last position received before an aircraft went quiet — useful when one went silent
-          away from KHWO. Tap a row to select that aircraft in the calculator and center the map on it.
+          If a tail isn't on the map, it isn't transmitting — a parked aircraft with the master off
+          shows nothing, so no plane symbol usually means it's on the ramp at KHWO.
         </div>
       </div>
     </section>
@@ -583,7 +560,6 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   </footer>
 </main>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // Wayman Fleet app logic — extracted verbatim from original, restyled hooks only.
 const AIRCRAFT = [
@@ -1490,154 +1466,12 @@ function initCalcApp() {
 
 const FLEET = AIRCRAFT;
 const KHWO = { lat: 26.0012, lon: -80.2407 };
-const FLEET_API = 'https://api.airplanes.live/v2/hex/' + FLEET.map(a => a.hex).join(',');
-const FLEET_REFRESH_MS = 10000;
-const FLEET_CACHE_KEY = 'wayman-fleet-lastseen';
-const FLEET_STALE_MS = 120000;
+// Embedded tar1090 globe, filtered to the fleet's hex codes. CORS does not apply to an
+// iframe, so this works from a static page with no API access of our own.
+const GLOBE_URL = 'https://globe.airplanes.live/?icaoFilter=' + FLEET.map(a => a.hex).join(',') +
+  '&lat=' + KHWO.lat + '&lon=' + KHWO.lon + '&zoom=11';
 
-let fleetCache = (() => {
-  try { return JSON.parse(localStorage.getItem(FLEET_CACHE_KEY)) || {}; } catch (e) { return {}; }
-})();
-let fleetFetchOk = null;
-let fleetFetchTime = null;
-
-let fltStatus = 'air';
 let fltType = 'all';
-let showGhosts = false;
-let focusTail = null;
-
-function haversineNm(lat1, lon1, lat2, lon2) {
-  const R = 3440.065;
-  const toRad = d => d * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-function bearingCompass(lat1, lon1, lat2, lon2) {
-  const toRad = d => d * Math.PI / 180;
-  const y = Math.sin(toRad(lon2 - lon1)) * Math.cos(toRad(lat2));
-  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - lon1));
-  const brg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(brg / 45) % 8];
-}
-
-function ago(ms) {
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return s + 's ago';
-  const m = Math.floor(s / 60);
-  if (m < 60) return m + 'm ago';
-  const h = Math.floor(m / 60);
-  if (h < 24) return h + 'h ' + (m % 60) + 'm ago';
-  return Math.floor(h / 24) + 'd ago';
-}
-
-function whereText(rec) {
-  const d = haversineNm(KHWO.lat, KHWO.lon, rec.lat, rec.lon);
-  if (d < 1.2) return 'at KHWO';
-  return d.toFixed(0) + ' nm ' + bearingCompass(KHWO.lat, KHWO.lon, rec.lat, rec.lon) + ' of KHWO';
-}
-
-function statusOf(hex) {
-  const rec = fleetCache[hex];
-  if (!rec) return { cls: 'off', label: 'No signal', detail: 'likely parked' };
-  const age = Date.now() - rec.ts;
-  if (age < FLEET_STALE_MS) {
-    if (rec.ground) return { cls: 'gnd', label: 'On ground', detail: whereText(rec) };
-    return {
-      cls: 'air', label: 'Airborne',
-      detail: (rec.alt || 0) + ' ft · ' + Math.round(rec.gs || 0) + ' kt · ' + whereText(rec),
-    };
-  }
-  const dHome = haversineNm(KHWO.lat, KHWO.lon, rec.lat, rec.lon);
-  return {
-    cls: age < 6 * 3600000 ? 'stale' : 'off',
-    label: 'Last seen ' + ago(age),
-    detail: dHome < 3 ? 'likely back at KHWO' : 'last known ' + whereText(rec),
-  };
-}
-
-function fmtShort(ms) {
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return s + 's';
-  const m = Math.floor(s / 60);
-  if (m < 60) return m + 'm';
-  return Math.floor(m / 60) + 'h';
-}
-
-let fleetMap = null;
-const markers = {};
-
-function planeIcon(track, color, tail, dim) {
-  const rot = typeof track === 'number' ? track : 0;
-  return L.divIcon({
-    className: 'plane-marker',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    html: `<div style="opacity:${dim ? 0.45 : 1}; position:relative;">
-      <svg width="24" height="24" viewBox="0 0 24 24" style="transform:rotate(${rot}deg)">
-        <path d="M12 2 L14 9 L21 11.5 L14 13 L13.5 19 L16 21.5 L12 20.5 L8 21.5 L10.5 19 L10 13 L3 11.5 L10 9 Z" fill="${color}"/>
-      </svg>
-      <span class="plane-label">${tail}</span>
-    </div>`,
-  });
-}
-
-function initFleetMap() {
-  if (typeof L === 'undefined') {
-    document.getElementById('map').innerHTML =
-      '<div style="padding:20px; color: var(--slate);">Map library failed to load — fleet list still works.</div>';
-    return;
-  }
-  fleetMap = L.map('map', { zoomControl: true }).setView([KHWO.lat, KHWO.lon], 10);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18,
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-  }).addTo(fleetMap);
-  L.circleMarker([KHWO.lat, KHWO.lon], {
-    radius: 7, color: '#E8C468', fillColor: '#E8C468', fillOpacity: 0.9,
-  }).addTo(fleetMap).bindPopup('<strong>KHWO</strong> — North Perry (home base)');
-}
-
-function updateMarkers() {
-  if (!fleetMap) return;
-  FLEET.forEach(a => {
-    const rec = fleetCache[a.hex];
-    if (!rec) return;
-    const st = statusOf(a.hex);
-    const isGhost = st.cls === 'stale' || st.cls === 'off';
-    const hidden = (focusTail && a.tail !== focusTail) || (isGhost && !showGhosts);
-    if (hidden) {
-      if (markers[a.hex]) { fleetMap.removeLayer(markers[a.hex]); delete markers[a.hex]; }
-      return;
-    }
-    const color = st.cls === 'air' ? '#6E9BE8' : st.cls === 'gnd' ? '#5BCB96' : '#6B7A94';
-    const icon = planeIcon(rec.track, color, a.tail, isGhost);
-    const pos = [rec.lat, rec.lon];
-    if (markers[a.hex]) {
-      markers[a.hex].setLatLng(pos).setIcon(icon);
-    } else {
-      markers[a.hex] = L.marker(pos, { icon }).addTo(fleetMap);
-    }
-    markers[a.hex].bindPopup(
-      `<strong>${a.tail}</strong> · ${modelLabel(a)}<br>${st.label}<br>${st.detail}`
-    );
-  });
-}
-
-function fitFleet() {
-  if (!fleetMap) return;
-  const pts = [[KHWO.lat, KHWO.lon]];
-  FLEET.forEach(a => {
-    const st = statusOf(a.hex);
-    if (fleetCache[a.hex] && (st.cls === 'air' || st.cls === 'gnd')) {
-      pts.push([fleetCache[a.hex].lat, fleetCache[a.hex].lon]);
-    }
-  });
-  fleetMap.fitBounds(L.latLngBounds(pts).pad(0.3), { maxZoom: 12 });
-}
 
 function modelLabel(a) {
   return a.model === '152' ? 'C-152' : 'C-172 ' + a.model;
@@ -1647,183 +1481,46 @@ function selectAircraft(a) {
   currentTail = a.tail;
   saveTail(a.tail);
   currentType = typeKeyOf(a);
-  if (focusTail) focusTail = a.tail;
   renderTabs();
   renderPicker();
   calculate();
   renderFleetList();
-  updateMarkers();
-  updateWatch();
-  const rec = fleetCache[a.hex];
-  if (fleetMap && rec) {
-    fleetMap.setView([rec.lat, rec.lon], 12);
-    if (markers[a.hex]) markers[a.hex].openPopup();
-  }
-}
-
-function rowMatchesFilters(a, st) {
-  if (focusTail && a.tail !== focusTail) return false;
-  if (fltType !== 'all' && typeKeyOf(a) !== fltType) return false;
-  if (fltStatus === 'air' && st.cls !== 'air') return false;
-  if (fltStatus === 'gnd' && st.cls !== 'gnd') return false;
-  return true;
 }
 
 function renderFleetList() {
-  let shown = 0;
   ['172', '152'].forEach(type => {
     const el = document.getElementById('list-' + type);
     el.innerHTML = '';
+    if (fltType !== 'all' && type !== fltType) return;
     FLEET.filter(a => typeKeyOf(a) === type).forEach(a => {
-      const st = statusOf(a.hex);
-      if (!rowMatchesFilters(a, st)) return;
-      shown++;
       const row = document.createElement('div');
       row.className = 'fleet-row' + (a.tail === currentTail ? ' selected' : '');
       row.dataset.tail = a.tail;
       row.innerHTML =
         `<span class="tail">${a.tail}</span>` +
-        `<span class="state ${st.cls}">${st.label}</span>` +
-        `<span class="detail">${st.detail}</span>`;
+        `<span class="detail">${modelLabel(a)}</span>`;
       row.onclick = () => selectAircraft(a);
       el.appendChild(row);
     });
   });
-  const cnt = document.getElementById('filter-count');
-  const filtered = focusTail || fltStatus !== 'all' || fltType !== 'all';
-  cnt.innerText = filtered ? shown + '/' + FLEET.length + ' shown' : '';
-  if (!shown) {
-    document.getElementById('list-172').innerHTML =
-      '<div class="helper">Nothing matches this filter right now — tap "All".</div>';
-  }
-}
-
-function applyFleetFilters(status, type) {
-  if (status) fltStatus = status;
-  if (type) fltType = type;
-  document.querySelectorAll('#filter-status .fbtn').forEach(x => x.classList.toggle('active', x.dataset.v === fltStatus));
-  document.querySelectorAll('#filter-type .fbtn').forEach(x => x.classList.toggle('active', x.dataset.v === fltType));
-  renderFleetList();
-}
-
-function toggleGhosts() {
-  showGhosts = !showGhosts;
-  const b = document.getElementById('btn-ghosts');
-  if (b) b.classList.toggle('active', showGhosts);
-  updateMarkers();
-}
-
-function toggleFocus() {
-  if (!currentTail) return;
-  focusTail = focusTail === currentTail ? null : currentTail;
-  renderFleetList();
-  updateMarkers();
-  updateWatch();
-  if (focusTail) {
-    const a = AIRCRAFT.find(x => x.tail === focusTail);
-    const rec = a && fleetCache[a.hex];
-    if (fleetMap && rec) fleetMap.setView([rec.lat, rec.lon], 11);
-  }
-}
-
-function updateWatch() {
-  const tailEl = document.getElementById('watch-tail');
-  const statusEl = document.getElementById('watch-status');
-  const btn = document.getElementById('btn-focus');
-  const ac = AIRCRAFT.find(a => a.tail === currentTail);
-  if (!ac) {
-    tailEl.innerText = '—';
-    statusEl.innerText = 'Pick a tail number to watch it here.';
-    btn.classList.remove('active');
-    return;
-  }
-  tailEl.innerText = ac.tail;
-  btn.classList.toggle('active', focusTail === ac.tail);
-  const rec = fleetCache[ac.hex];
-  const st = statusOf(ac.hex);
-  if (st.cls === 'air' && rec) {
-    statusEl.innerText = 'Airborne · ' + (rec.alt || 0) + ' ft · ' + Math.round(rec.gs || 0) + ' kt · ' + whereText(rec);
-  } else if (st.cls === 'gnd') {
-    statusEl.innerText = 'On ground · ' + whereText(rec);
-  } else if (st.cls === 'stale') {
-    statusEl.innerText = st.label + ' · ' + st.detail;
-  } else {
-    statusEl.innerText = 'No signal — likely parked at KHWO';
-  }
-}
-
-function renderFleetStatusbar() {
-  const dot = document.getElementById('src-dot');
-  const txt = document.getElementById('src-text');
-  if (fleetFetchOk === null) {
-    dot.className = 'dot';
-    txt.innerText = 'Connecting…';
-  } else if (fleetFetchOk) {
-    dot.className = 'dot live';
-    const n = FLEET.filter(a => statusOf(a.hex).cls === 'air').length;
-    txt.innerText = `${n}/${FLEET.length} airborne · ${fmtShort(Date.now() - fleetFetchTime)}`;
-    txt.title = `Live via airplanes.live · updated ${ago(Date.now() - fleetFetchTime)}`;
-  } else {
-    dot.className = 'dot err';
-    txt.innerText = 'Source unreachable — showing last known';
-  }
-  document.querySelectorAll('.fleet-row').forEach(r =>
-    r.classList.toggle('selected', r.dataset.tail === currentTail));
-  updateWatch();
-}
-
-let fleetFirstFit = true;
-
-async function refreshFleet() {
-  try {
-    const res = await fetch(FLEET_API, { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    const now = Date.now();
-    (data.ac || []).forEach(ac => {
-      const hex = (ac.hex || '').toLowerCase();
-      if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') return;
-      const ground = ac.alt_baro === 'ground';
-      fleetCache[hex] = {
-        lat: ac.lat,
-        lon: ac.lon,
-        alt: ground ? 0 : Math.round(ac.alt_baro || 0),
-        gs: ac.gs || 0,
-        track: typeof ac.track === 'number' ? ac.track : null,
-        ground,
-        ts: now - Math.round((ac.seen || 0) * 1000),
-      };
-    });
-    try { localStorage.setItem(FLEET_CACHE_KEY, JSON.stringify(fleetCache)); } catch (e) {}
-    fleetFetchOk = true;
-    fleetFetchTime = now;
-    if (fleetFirstFit) { fleetFirstFit = false; fitFleet(); }
-  } catch (e) {
-    fleetFetchOk = false;
-  }
-  renderFleetList();
-  updateMarkers();
-  renderFleetStatusbar();
 }
 
 function initFleetApp() {
-  initFleetMap();
+  document.getElementById('map').src = GLOBE_URL + '&hideSidebar&hideButtons';
+  document.getElementById('lnk-globe').href = GLOBE_URL;
   renderFleetList();
-  renderFleetStatusbar();
-  refreshFleet();
-  setInterval(refreshFleet, FLEET_REFRESH_MS);
-  setInterval(renderFleetStatusbar, 1000);
-  document.getElementById('btn-refresh').onclick = refreshFleet;
-  document.getElementById('btn-fit').onclick = fitFleet;
-  document.getElementById('btn-ghosts').onclick = toggleGhosts;
-  document.getElementById('btn-focus').onclick = toggleFocus;
-  document.querySelectorAll('#filter-status .fbtn').forEach(b => {
-    b.onclick = () => applyFleetFilters(b.dataset.v, null);
-  });
+  setInterval(() => {
+    document.querySelectorAll('.fleet-row').forEach(r =>
+      r.classList.toggle('selected', r.dataset.tail === currentTail));
+  }, 1000);
   document.querySelectorAll('#filter-type .fbtn').forEach(b => {
-    b.onclick = () => applyFleetFilters(null, b.dataset.v);
+    b.onclick = () => {
+      fltType = b.dataset.v;
+      document.querySelectorAll('#filter-type .fbtn').forEach(x =>
+        x.classList.toggle('active', x.dataset.v === fltType));
+      renderFleetList();
+    };
   });
-  updateWatch();
 }
 
 initCalcApp();

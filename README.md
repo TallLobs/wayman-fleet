@@ -10,11 +10,11 @@ calculator first).
   back-derived from the school-sheet full-fuel moments: 172 → 11500/240, 152 → 6200/147
   displayed as 42.17; taxi defaults −7 / −6; all 152s enforce 1670 lb max takeoff with
   1675 ramp).
-- **Live map**: polls [airplanes.live](https://airplanes.live) every 10 s with one batched
-  ~1 KB query for all 23 aircraft (by ICAO hex, resolved from the FAA registry), draws them
-  on a dark Leaflet map with smooth marker motion, and shows per-tail status: airborne /
-  on ground / last seen. Positions persist in localStorage so "last seen" survives reloads.
-  Tapping a fleet row selects that aircraft in the calculator and centers the map on it.
+- **Live map**: embeds the [airplanes.live](https://airplanes.live) tar1090 globe in an
+  iframe, filtered (`icaoFilter`) to the fleet's 23 ICAO hex codes — live positions with
+  zero API calls of our own. If a tail is on the map it's transmitting (flying or taxiing);
+  if not, it's parked with the master off. Tapping a fleet row selects that aircraft in
+  the calculator.
 
 ## Deploy on GitHub Pages
 
@@ -28,8 +28,9 @@ No build step, no dependencies to install — Leaflet and map tiles load from CD
 
 ## Data sources & caveats
 
-- Live positions: airplanes.live REST API (CORS-open, free; the only major open ADS-B
-  aggregator that allows browser calls — adsb.lol, adsb.fi and OpenSky do not).
+- Live positions: embedded airplanes.live globe (their REST API closed to anonymous use
+  in Aug 2026, which killed the old fetch-and-draw map; no free ADS-B aggregator allows
+  direct browser API calls anymore, but the globe page itself embeds fine and needs no key).
 - A parked aircraft with the master off transmits **nothing**: "No signal" almost always
   means it's on the ramp. "Last seen" shows the final received position.
 - Aircraft hex codes came from the FAA registry (registry.faa.gov) on 2026-07-15; if the
