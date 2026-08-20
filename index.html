@@ -302,7 +302,7 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
       <div class="card">
         <div class="statusbar">
           <span class="dot live"></span>
-          <span>Live map — Wayman aircraft only (via airplanes.live)</span>
+          <span>Live map — Wayman aircraft only (via adsb.lol)</span>
           <a id="lnk-globe" href="#" target="_blank" rel="noopener" style="margin-left:auto; color: var(--slate);">Open full map ↗</a>
         </div>
       </div>
@@ -1467,8 +1467,9 @@ function initCalcApp() {
 const FLEET = AIRCRAFT;
 const KHWO = { lat: 26.0012, lon: -80.2407 };
 // Embedded tar1090 globe, filtered to the fleet's hex codes. CORS does not apply to an
-// iframe, so this works from a static page with no API access of our own.
-const GLOBE_URL = 'https://globe.airplanes.live/?icaoFilter=' + FLEET.map(a => a.hex).join(',') +
+// iframe, so this works from a static page with no API access of our own. Must be a host
+// that permits cross-site framing: airplanes.live 403s iframe requests, adsb.lol does not.
+const GLOBE_URL = 'https://adsb.lol/?icaoFilter=' + FLEET.map(a => a.hex).join(',') +
   '&lat=' + KHWO.lat + '&lon=' + KHWO.lon + '&zoom=11';
 
 let fltType = 'all';
