@@ -9,12 +9,17 @@ calculator first).
 - **Calculator**: all constants follow the school's paperwork conventions (fuel arms
   back-derived from the school-sheet full-fuel moments: 172 → 11500/240, 152 → 6200/147
   displayed as 42.17; taxi defaults −7 / −6; all 152s enforce 1670 lb max takeoff with
-  1675 ramp).
+  1675 ramp). Empty weights/moments and exact model letters (each 172 is an N, M, or P —
+  no more ambiguous "NM") refreshed from the school's Talon (ETA) W&B table on 2026-08-24;
+  N67549 kept from older data (absent from that table). Non-Cessna school aircraft
+  (Arrows, twins) are deliberately excluded.
 - **Live map**: embeds the [adsb.lol](https://adsb.lol) tar1090 globe in an
   iframe, filtered (`icaoFilter`) to the fleet's 23 ICAO hex codes — live positions with
-  zero API calls of our own. If a tail is on the map it's transmitting (flying or taxiing);
-  if not, it's parked with the master off. Tapping a fleet row selects that aircraft in
-  the calculator.
+  zero API calls of our own. Dark basemap (`baseMap=carto_dark_all`), altitude legend off
+  (`altitudeChart=0`); the embed's bottom strip (attribution/wordmark/scale) is cropped by
+  a wrapper div, with OSM/CARTO credit shown in our own statusbar instead. If a tail is on
+  the map it's transmitting (flying or taxiing); if not, it's parked with the master off.
+  Tapping a fleet row selects that aircraft in the calculator.
 
 ## Deploy on GitHub Pages
 

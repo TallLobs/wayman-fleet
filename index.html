@@ -181,8 +181,11 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 }
 
 /* ---------- map + fleet ---------- */
-#map { display: block; width: 100%; height: 42vh; min-height: 300px; border: 1px solid var(--powder); background: var(--surface); }
-@media (min-width: 1100px) { #map { height: 44vh; } }
+/* The wrapper crops the embed's bottom strip (attribution line, adsb.lol wordmark,
+   scale bar); our own statusbar carries the OSM/CARTO credit instead. */
+#map-crop { height: 42vh; min-height: 300px; overflow: hidden; border: 1px solid var(--powder); background: var(--surface); }
+#map { display: block; width: 100%; height: calc(100% + 48px); border: 0; }
+@media (min-width: 1100px) { #map-crop { height: 44vh; } }
 .plane-marker svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
 .plane-label {
   font: 700 10.5px var(--mono); color: var(--ink);
@@ -302,11 +305,12 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
       <div class="card">
         <div class="statusbar">
           <span class="dot live"></span>
-          <span>Live map — Wayman aircraft only (via adsb.lol)</span>
+          <span>Live map — Wayman aircraft only</span>
+          <span style="opacity:0.65;">map © OpenStreetMap © CARTO · via adsb.lol</span>
           <a id="lnk-globe" href="#" target="_blank" rel="noopener" style="margin-left:auto; color: var(--slate);">Open full map ↗</a>
         </div>
       </div>
-      <iframe id="map" title="Live Wayman fleet map"></iframe>
+      <div id="map-crop"><iframe id="map" title="Live Wayman fleet map"></iframe></div>
       <div class="card" id="sec-fleet">
         <div class="eyebrow">Fleet — tap a tail to load it in the calculator</div>
         <div class="filter-rows">
@@ -562,30 +566,32 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 
 <script>
 // Wayman Fleet app logic — extracted verbatim from original, restyled hooks only.
+// W&B data and exact model letters from the school's Talon (ETA) W&B table, 2026-08-24.
+// N67549 is absent from that table but kept per founder decision (data is pre-Talon).
 const AIRCRAFT = [
-  { tail: "N4974G", hex: "a62d04", model: "NM", emptyWeight: 1542,   emptyMoment: 60803.25, maxGross: 2300 },
-  { tail: "N53107", hex: "a6b69c", model: "P",  emptyWeight: 1532,   emptyMoment: 57515.88, maxGross: 2400 },
-  { tail: "N53996", hex: "a6d58e", model: "P",  emptyWeight: 1526,   emptyMoment: 58083.00, maxGross: 2400 },
-  { tail: "N62218", hex: "a82047", model: "P",  emptyWeight: 1504,   emptyMoment: 57962.51, maxGross: 2400 },
-  { tail: "N65645", hex: "a8a606", model: "P",  emptyWeight: 1467,   emptyMoment: 58272.40, maxGross: 2400 },
-  { tail: "N66174", hex: "a8bb5a", model: "P",  emptyWeight: 1565,   emptyMoment: 60552.50, maxGross: 2400 },
-  { tail: "N734BH", hex: "a9da08", model: "NM", emptyWeight: 1510,   emptyMoment: 56075.00, maxGross: 2400, verify: true },
-  { tail: "N737PY", hex: "a9e668", model: "NM", emptyWeight: 1486.6, emptyMoment: 58007.70, maxGross: 2300 },
-  { tail: "N905WA", hex: "ac83b4", model: "NM", emptyWeight: 1541,   emptyMoment: 59968.75, maxGross: 2300 },
-  { tail: "N906WA", hex: "ac876b", model: "NM", emptyWeight: 1514,   emptyMoment: 56558.50, maxGross: 2300 },
-  { tail: "N92324", hex: "accc0a", model: "NM", emptyWeight: 1531,   emptyMoment: 58953.00, maxGross: 2300 },
-  { tail: "N155SK", hex: "a0de5c", model: "152", emptyWeight: 1178.15, emptyMoment: 36065.72, maxGross: 1670 },
+  { tail: "N4974G", hex: "a62d04", model: "N",  emptyWeight: 1542,    emptyMoment: 60803.25, maxGross: 2300 },
+  { tail: "N53107", hex: "a6b69c", model: "P",  emptyWeight: 1537.1,  emptyMoment: 57745.38, maxGross: 2400 },
+  { tail: "N53996", hex: "a6d58e", model: "P",  emptyWeight: 1526,    emptyMoment: 58083.00, maxGross: 2400 },
+  { tail: "N62218", hex: "a82047", model: "P",  emptyWeight: 1504,    emptyMoment: 57962.51, maxGross: 2400 },
+  { tail: "N65645", hex: "a8a606", model: "P",  emptyWeight: 1472.1,  emptyMoment: 58501.89, maxGross: 2400 },
+  { tail: "N66174", hex: "a8bb5a", model: "P",  emptyWeight: 1565,    emptyMoment: 60552.50, maxGross: 2400 },
+  { tail: "N734BH", hex: "a9da08", model: "N",  emptyWeight: 1510,    emptyMoment: 56075.00, maxGross: 2400 },
+  { tail: "N737PY", hex: "a9e668", model: "N",  emptyWeight: 1486.6,  emptyMoment: 58007.70, maxGross: 2300 },
+  { tail: "N905WA", hex: "ac83b4", model: "N",  emptyWeight: 1541,    emptyMoment: 59968.75, maxGross: 2300 },
+  { tail: "N906WA", hex: "ac876b", model: "N",  emptyWeight: 1514,    emptyMoment: 56558.50, maxGross: 2300 },
+  { tail: "N92324", hex: "accc0a", model: "M",  emptyWeight: 1531,    emptyMoment: 58953.00, maxGross: 2300 },
+  { tail: "N155SK", hex: "a0de5c", model: "152", emptyWeight: 1180.94, emptyMoment: 36241.49, maxGross: 1670 },
   { tail: "N24857", hex: "a250de", model: "152", emptyWeight: 1230,    emptyMoment: 37365.00, maxGross: 1670 },
-  { tail: "N46953", hex: "a5be2d", model: "152", emptyWeight: 1192,    emptyMoment: 35699.75, maxGross: 1670 },
-  { tail: "N47586", hex: "a5d73c", model: "152", emptyWeight: 1241,    emptyMoment: 39397.00, maxGross: 1670, verify: true },
+  { tail: "N46953", hex: "a5be2d", model: "152", emptyWeight: 1194.79, emptyMoment: 35875.51, maxGross: 1670 },
+  { tail: "N47586", hex: "a5d73c", model: "152", emptyWeight: 1241,    emptyMoment: 39397.00, maxGross: 1670 },
   { tail: "N5551L", hex: "a71484", model: "152", emptyWeight: 1238,    emptyMoment: 39112.51, maxGross: 1670 },
   { tail: "N6097M", hex: "a7ec07", model: "152", emptyWeight: 1228,    emptyMoment: 37487.75, maxGross: 1670 },
   { tail: "N6300Q", hex: "a84023", model: "152", emptyWeight: 1225,    emptyMoment: 37326.50, maxGross: 1670 },
-  { tail: "N65401", hex: "a89e08", model: "152", emptyWeight: 1225,    emptyMoment: 37541.37, maxGross: 1670 },
+  { tail: "N65401", hex: "a89e08", model: "152", emptyWeight: 1227.86, emptyMoment: 37718.69, maxGross: 1670 },
   { tail: "N67324", hex: "a8e998", model: "152", emptyWeight: 1232.8,  emptyMoment: 37650.45, maxGross: 1670 },
-  { tail: "N67549", hex: "a8f151", model: "152", emptyWeight: 1157,    emptyMoment: 34710.00, maxGross: 1670, verify: true },
+  { tail: "N67549", hex: "a8f151", model: "152", emptyWeight: 1157,    emptyMoment: 34710.00, maxGross: 1670 },
   { tail: "N908WA", hex: "ac8ed9", model: "152", emptyWeight: 1245,    emptyMoment: 38657.00, maxGross: 1670 },
-  { tail: "N93730", hex: "ad0284", model: "152", emptyWeight: 1233,    emptyMoment: 37191.00, maxGross: 1670 },
+  { tail: "N93730", hex: "ad0284", model: "152", emptyWeight: 1235.8,  emptyMoment: 37363.20, maxGross: 1670 },
 ];
 
 const FUEL_LB_PER_GAL = 6.0;
@@ -632,6 +638,9 @@ const TYPES = {
 
 const typeKeyOf = ac => (ac.model === '152' ? '152' : '172');
 const typeOf = ac => TYPES[typeKeyOf(ac)];
+// Envelope and performance tables are shared by the 172N and 172M ("NM" bucket);
+// aircraft carry their exact model letter, so map N/M onto that bucket for lookups.
+const perfKeyOf = model => (model === 'N' || model === 'M') ? 'NM' : model;
 
 const ENVELOPES = {
   NM: { 
@@ -802,7 +811,6 @@ function renderPicker() {
     const btn = document.createElement('div');
     btn.className = 'pill' + (a.tail === currentTail ? ' active' : '');
     let badge = `<span class="pill-badge">${a.model} · ${a.maxGross}</span>`;
-    if (a.verify) badge += `<span style="color:var(--warn); margin-left:2px;">▲</span>`;
     btn.innerHTML = `<strong>${a.tail}</strong> ${badge}`;
     btn.onclick = () => {
       currentTail = a.tail;
@@ -861,9 +869,10 @@ function setCell(id, val, dp) {
 }
 
 function getEnvelopePoly(model, type, maxGross) {
-  return ENVELOPES[model][type].map(pt => {
+  const key = perfKeyOf(model);
+  return ENVELOPES[key][type].map(pt => {
     let y = pt[1];
-    if (model === 'NM' && y === 2300) y = maxGross;
+    if (key === 'NM' && y === 2300) y = maxGross;
     return [pt[0], y];
   });
 }
@@ -962,10 +971,6 @@ function updateStatus(ac, T, toW, toCg, landW, landCg, rampW, fob, burn, burnWar
   let normalPoly = getEnvelopePoly(ac.model, 'normal', ac.maxGross);
   let utilityPoly = T.hasUtility ? getEnvelopePoly(ac.model, 'utility', ac.maxGross) : null;
   let aftLimit = Math.max(...normalPoly.map(p => p[0]));
-
-  if (ac.verify) {
-    addChip('warn', 'School data flagged — confirm against aircraft W&B records');
-  }
 
   if (toW > ac.maxGross) {
     addChip('fail', `Over max gross by ${(toW - ac.maxGross).toFixed(1)} lb`);
@@ -1111,7 +1116,7 @@ function updatePerf(ac) {
   let isa = 15 - 2 * (pa / 1000);
   let da = pa + 120 * (oat - isa);
   
-  let p = PERF[ac.model];
+  let p = PERF[perfKeyOf(ac.model)];
   let to = getPerfTableValues(p.takeoff, pa, oat);
   let ld = getPerfTableValues(p.landing, pa, oat);
   
@@ -1145,7 +1150,7 @@ function setNote(id, text, cls) {
 }
 function updateHero(ac, T, toW, cgTo, remaining) {
   document.getElementById('hero-tail').innerText = ac.tail;
-  document.getElementById('hero-meta').innerText = modelLabel(ac).toUpperCase() + ' · MAX ' + ac.maxGross + ' LB' + (ac.verify ? ' · VERIFY W&B DATA' : '');
+  document.getElementById('hero-meta').innerText = modelLabel(ac).toUpperCase() + ' · MAX ' + ac.maxGross + ' LB';
   document.getElementById('kpi-tow').innerText = toW.toFixed(1);
   const margin = ac.maxGross - toW;
   if (margin >= 0) setNote('kpi-tow-note', margin.toFixed(0) + ' LB UNDER GROSS', 'ok');
@@ -1470,7 +1475,7 @@ const KHWO = { lat: 26.0012, lon: -80.2407 };
 // iframe, so this works from a static page with no API access of our own. Must be a host
 // that permits cross-site framing: airplanes.live 403s iframe requests, adsb.lol does not.
 const GLOBE_URL = 'https://adsb.lol/?icaoFilter=' + FLEET.map(a => a.hex).join(',') +
-  '&lat=' + KHWO.lat + '&lon=' + KHWO.lon + '&zoom=11';
+  '&lat=' + KHWO.lat + '&lon=' + KHWO.lon + '&zoom=11&baseMap=carto_dark_all';
 
 let fltType = 'all';
 
@@ -1507,7 +1512,7 @@ function renderFleetList() {
 }
 
 function initFleetApp() {
-  document.getElementById('map').src = GLOBE_URL + '&hideSidebar&hideButtons';
+  document.getElementById('map').src = GLOBE_URL + '&hideSidebar&hideButtons&altitudeChart=0';
   document.getElementById('lnk-globe').href = GLOBE_URL;
   renderFleetList();
   setInterval(() => {
