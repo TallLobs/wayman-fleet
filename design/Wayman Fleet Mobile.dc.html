@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body { margin:0; background:#080D16; color:#EDF1F7; font-family:Archivo,system-ui,sans-serif; line-height:1.5; }
+a { color:#9FB2D1; } a:hover { color:#EDF1F7; }
+input, select, button { font-family:inherit; }
+input:focus, select:focus { outline:none; border-color:#4A7DD6 !important; }
+input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+input[type="number"] { -moz-appearance:textfield; appearance:textfield; }
+</style>
+</helmet>
+<div style="max-width:460px; margin:0 auto; min-height:100vh; border-left:1px solid #1B2941; border-right:1px solid #1B2941; padding-bottom:96px; background:#080D16">
+  <header style="display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:14px 16px 12px; border-bottom:1px solid #1B2941">
+    <div style="font:400 24px/1 'Instrument Serif',serif; white-space:nowrap"><em>Wayman</em> Fleet</div>
+    <div style="font:500 9.5px 'IBM Plex Mono',monospace; color:#6B7A94; letter-spacing:0.14em; white-space:nowrap">KHWO · W&B · LIVE MAP</div>
+  </header>
+
+  <sc-if value="{{ tabWb }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="W&B calculator">
+      <section style="border-bottom:1px solid #1B2941">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px">
+          <div style="min-width:0">
+            <div style="font:400 40px/1 'Instrument Serif',serif; letter-spacing:0.01em">{{ heroTail }}</div>
+            <div style="font:500 10.5px 'IBM Plex Mono',monospace; color:#6B7A94; letter-spacing:0.08em; margin-top:6px">{{ heroMeta }}</div>
+          </div>
+          <button onClick="{{ openPicker }}" style="background:#10233F; color:#EDF1F7; border:1px solid #4A7DD6; padding:0 18px; min-height:48px; font:600 12px Archivo; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; flex-shrink:0">Change</button>
+        </div>
+        <button onClick="{{ goMapTab }}" style="width:100%; display:flex; align-items:center; gap:10px; padding:12px 16px; background:transparent; border:none; border-top:1px solid #1B2941; cursor:pointer; text-align:left; box-sizing:border-box">
+          <span style="{{ heroStatusDot }}"></span>
+          <span style="{{ heroStatusTextStyle }}">{{ heroStatusText }}</span>
+          <span style="margin-left:auto; font:600 10px Archivo; letter-spacing:0.08em; text-transform:uppercase; color:#6B7A94; white-space:nowrap">Map ↗</span>
+        </button>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid #1B2941">
+          <div style="padding:12px 12px 13px; border-right:1px solid #1B2941; min-width:0">
+            <div style="font:600 9px Archivo; letter-spacing:0.12em; color:#6B7A94; text-transform:uppercase">Take-Off Wt</div>
+            <div style="font:400 24px/1.15 'Instrument Serif',serif; margin-top:3px; white-space:nowrap">{{ towVal }}<span style="font-size:14px; color:#6B7A94"> lb</span></div>
+            <div style="{{ towNoteStyle }}">{{ towNote }}</div>
+          </div>
+          <div style="padding:12px 12px 13px; border-right:1px solid #1B2941; min-width:0">
+            <div style="font:600 9px Archivo; letter-spacing:0.12em; color:#6B7A94; text-transform:uppercase">Take-Off CG</div>
+            <div style="font:400 24px/1.15 'Instrument Serif',serif; margin-top:3px; white-space:nowrap">{{ cgVal }}<span style="font-size:14px; color:#6B7A94"> in</span></div>
+            <div style="{{ cgNoteStyle }}">{{ cgNote }}</div>
+          </div>
+          <div style="padding:12px 12px 13px; min-width:0">
+            <div style="font:600 9px Archivo; letter-spacing:0.12em; color:#6B7A94; text-transform:uppercase">Useful Left</div>
+            <div style="font:400 24px/1.15 'Instrument Serif',serif; margin-top:3px; white-space:nowrap">{{ usefulVal }}<span style="font-size:14px; color:#6B7A94"> lb</span></div>
+            <div style="{{ usefulNoteStyle }}">{{ usefulNote }}</div>
+          </div>
+        </div>
+      </section>
+
+      <div style="display:flex; flex-direction:column; gap:14px; padding:14px 12px">
+        <div style="background:#0C1526; border:1px solid #1B2941; padding:16px">
+          <div style="font:600 10px 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.16em; color:#6B7A94; margin-bottom:14px">Payload &amp; Fuel</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px">
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <label style="font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; color:#9FB2D1">{{ lblFront }}</label>
+              <input type="number" inputMode="decimal" min="0" step="1" value="{{ inp.front }}" onInput="{{ set.front }}" style="padding:13px 12px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none; font-variant-numeric:tabular-nums">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <label style="font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; color:#9FB2D1">{{ lblRow2 }}</label>
+              <input type="number" inputMode="decimal" min="0" step="1" value="{{ inp.rear }}" onInput="{{ set.rear }}" style="padding:13px 12px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none; font-variant-numeric:tabular-nums">
+              <div style="font-size:11.5px; color:#6B7A94">{{ helpRow2 }}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <label style="font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; color:#9FB2D1">{{ lblRow3 }}</label>
+              <input type="number" inputMode="decimal" min="0" step="1" value="{{ inp.bag }}" onInput="{{ set.bag }}" style="padding:13px 12px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none; font-variant-numeric:tabular-nums">
+              <div style="font-size:11.5px; color:#6B7A94">{{ helpRow3 }}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <label style="font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; color:#9FB2D1">Fuel on Board (gal)</label>
+              <input type="number" inputMode="decimal" min="0" max="{{ fobMax }}" step="0.1" value="{{ inp.fob }}" onInput="{{ set.fob }}" style="padding:13px 12px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none; font-variant-numeric:tabular-nums">
+              <div style="font-size:11.5px; color:#6B7A94">Usable weight: <span style="font-family:'IBM Plex Mono',monospace">{{ fobLb }}</span> lb</div>
+              <sc-if value="{{ hasFuelNote }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:11.5px; color:#E8C468">{{ fuelNote }}</div>
+              </sc-if>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+                <label style="font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; color:#9FB2D1">Fuel Burn</label>
+                <span style="display:flex">
+                  <button onClick="{{ onBurnLb }}" style="{{ burnLbStyle }}">lb</button>
+                  <button onClick="{{ onBurnGal }}" style="{{ burnGalStyle }}">gal</button>
+                </span>
+              </div>
+              <input type="number" inputMode="decimal" min="0" step="0.1" value="{{ inp.burn }}" onInput="{{ set.burn }}" style="padding:13px 12px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none; font-variant-numeric:tabular-nums">
+              <div style="font-size:11.5px; color:#6B7A94">Converted: <span style="font-family:'IBM Plex Mono',monospace">{{ burnConv }}</span> {{ burnConvUnit }}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <label style="font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; color:#9FB2D1">Flight Conditions</label>
+              <div style="display:flex; gap:8px">
+                <select value="{{ inp.daynight }}" onChange="{{ set.daynight }}" style="flex:1; padding:13px 12px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; appearance:none">
+                  <option value="day">Day</option>
+                  <option value="night">Night</option>
+                </select>
+                <div style="display:flex; align-items:center; gap:6px; flex:1">
+                  <input type="number" inputMode="decimal" step="0.1" value="{{ inp.burnrate }}" onInput="{{ set.burnrate }}" title="Burn rate (GPH)" style="width:100%; padding:13px 12px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; box-sizing:border-box; appearance:none">
+                  <span style="font-size:11.5px; color:#6B7A94">GPH</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:16px; background:#10233F; padding:12px 14px; display:flex; justify-content:space-between; align-items:baseline; gap:12px">
+            <span style="font:600 10px Archivo; letter-spacing:0.11em; color:#9FB2D1; text-transform:uppercase">Remaining Useful Load</span>
+            <strong style="font:500 16px 'IBM Plex Mono',monospace; color:#EDF1F7">{{ usefulRemaining }}</strong>
+          </div>
+        </div>
+
+        <div style="background:#0C1526; border:1px solid #1B2941; padding:16px">
+          <div style="font:600 10px 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.16em; color:#6B7A94; margin-bottom:14px">Status</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px">
+            <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+              <div style="{{ c.style }}">{{ c.text }}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#0C1526; border:1px solid #1B2941; padding:16px" data-screen-label="W&B table">
+          <div style="font:600 10px 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.16em; color:#6B7A94; margin-bottom:14px">Weight &amp; Balance</div>
+          <div style="overflow-x:auto">
+            <table style="width:100%; border-collapse:collapse; text-align:right; font-variant-numeric:tabular-nums; font:500 12.5px 'IBM Plex Mono',monospace">
+              <thead>
+                <tr>
+                  <th style="padding:8px 8px; border-bottom:1px solid #1B2941; color:#6B7A94; font:600 9px Archivo; text-transform:uppercase; letter-spacing:0.12em; text-align:left">Item</th>
+                  <th style="padding:8px 8px; border-bottom:1px solid #1B2941; color:#6B7A94; font:600 9px Archivo; text-transform:uppercase; letter-spacing:0.12em">Weight</th>
+                  <th style="padding:8px 8px; border-bottom:1px solid #1B2941; color:#6B7A94; font:600 9px Archivo; text-transform:uppercase; letter-spacing:0.12em">Arm</th>
+                  <th style="padding:8px 8px; border-bottom:1px solid #1B2941; color:#6B7A94; font:600 9px Archivo; text-transform:uppercase; letter-spacing:0.12em">Moment</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:12.5px; color:#9FB2D1; text-align:left">Basic Empty Wt</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ wBew }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ aBew }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ mBew }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:12.5px; color:#9FB2D1; text-align:left">Pilot &amp; Passenger</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ wFront }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ aFront }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ mFront }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:12.5px; color:#9FB2D1; text-align:left">{{ row2Label }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ wRear }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ aRow2 }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ mRear }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:12.5px; color:#9FB2D1; text-align:left">{{ row3Label }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ wBag }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ aRow3 }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ mBag }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600; color:#EDF1F7; text-align:left; font-family:Archivo; font-size:12.5px">Zero Fuel Wt</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ wZfw }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ aZfw }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ mZfw }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:12.5px; color:#9FB2D1; text-align:left">Total Fuel</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ wFob }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ aFuel }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ mFob }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600; color:#EDF1F7; text-align:left; font-family:Archivo; font-size:12.5px">Ramp Wt</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ wRamp }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ aRamp }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ mRamp }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:12.5px; color:#9FB2D1; text-align:left">Start/Taxi/Run-Up</td>
+                  <td style="padding:4px 8px; border-bottom:1px solid #1B2941"><input type="number" inputMode="decimal" step="1" value="{{ inp.taxi }}" onInput="{{ set.taxi }}" style="width:64px; padding:8px 6px; text-align:right; font:500 13px 'IBM Plex Mono',monospace; border:1px solid #1B2941; border-radius:0; background:#080D16; color:#EDF1F7; appearance:none"></td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">—</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ mTaxi }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600; color:#EDF1F7; text-align:left; font-family:Archivo; font-size:12.5px">Take-Off Wt</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ wTo }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ aTo }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; background:#10233F; font-weight:600">{{ mTo }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:12.5px; color:#9FB2D1; text-align:left">Fuel Burn</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ wBurn }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ aFuel }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #1B2941">{{ mBurn }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px; background:#10233F; font-weight:600; color:#EDF1F7; text-align:left; font-family:Archivo; font-size:12.5px">Landing Wt</td>
+                  <td style="padding:8px; background:#10233F; font-weight:600">{{ wLand }}</td>
+                  <td style="padding:8px; background:#10233F; font-weight:600">{{ aLand }}</td>
+                  <td style="padding:8px; background:#10233F; font-weight:600">{{ mLand }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="background:#0C1526; border:1px solid #1B2941; padding:16px" data-screen-label="CG envelope">
+          <button onClick="{{ toggleCg }}" style="width:100%; min-height:48px; background:transparent; color:#9FB2D1; border:1px solid #1B2941; border-radius:0; font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:0 14px">
+            <span>CG Envelope</span>
+            <span style="font-family:'IBM Plex Mono',monospace">{{ cgToggleLabel }}</span>
+          </button>
+          <sc-if value="{{ cgOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:12px; aspect-ratio:10/7; border:1px solid #1B2941; background:#080D16">{{ cgPlot }}</div>
+            <div style="font-size:11px; color:#6B7A94; margin-top:8px">{{ cgCaption }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="{{ mapPaneStyle }}" data-screen-label="Live map">
+    <div style="display:flex; flex-direction:column; gap:14px; padding:14px 12px">
+      <div style="background:#0C1526; border:1px solid #1B2941; padding:14px 16px; display:flex; flex-direction:column; gap:8px">
+        <div style="display:flex; align-items:center; gap:10px; font:500 12px 'IBM Plex Mono',monospace; color:#EDF1F7">
+          <span style="width:9px; height:9px; background:#5BCB96; flex-shrink:0"></span>
+          <span>On the map — transmitting (flying or taxiing)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; font:500 12px 'IBM Plex Mono',monospace; color:#6B7A94">
+          <span style="width:9px; height:9px; border:1px dashed #6B7A94; flex-shrink:0"></span>
+          <span>Not on the map — parked at KHWO, master off</span>
+        </div>
+      </div>
+      <div style="height:56vh; min-height:320px; overflow:hidden; border:1px solid #1B2941; background:#0C1526">
+        <sc-if value="{{ mapVisited }}" hint-placeholder-val="{{ false }}">
+          <iframe title="Live Wayman fleet map" src="{{ globeUrl }}" style="display:block; width:100%; height:calc(100% + 48px); border:0"></iframe>
+        </sc-if>
+      </div>
+      <div style="font-size:10.5px; color:#6B7A94; margin-top:-8px">map © OpenStreetMap © CARTO · via adsb.lol · Wayman aircraft only</div>
+      <a href="{{ fullMapUrl }}" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; min-height:48px; border:1px solid #4A7DD6; background:#10233F; color:#EDF1F7; text-decoration:none; font:600 12px Archivo; letter-spacing:0.08em; text-transform:uppercase">Open full map ↗</a>
+      <div style="background:#0C1526; border:1px solid #1B2941; padding:16px">
+        <button onClick="{{ toggleFleet }}" style="width:100%; min-height:48px; background:transparent; color:#9FB2D1; border:1px solid #1B2941; border-radius:0; font:600 11px Archivo; letter-spacing:0.09em; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:0 14px">
+            <span>Fleet list — 23 aircraft</span>
+            <span style="font-family:'IBM Plex Mono',monospace">{{ fleetToggleLabel }}</span>
+        </button>
+        <sc-if value="{{ fleetOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; margin:12px 0 10px">
+            <sc-for list="{{ fleetFilters }}" as="f" hint-placeholder-count="3">
+              <button onClick="{{ f.onTap }}" style="{{ f.style }}">{{ f.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto">
+            <sc-for list="{{ fleetRows }}" as="r" hint-placeholder-count="6">
+              <button onClick="{{ r.onTap }}" style="{{ r.style }}">
+                <span style="font:600 14px 'IBM Plex Mono',monospace">{{ r.tail }}</span>
+                <span style="font:400 11.5px 'IBM Plex Mono',monospace; color:#6B7A94">{{ r.model }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="font-size:11.5px; color:#6B7A94; margin-top:10px">Tap a tail to load it in the calculator.</div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ tabWind }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; flex-direction:column; gap:14px; padding:14px 12px" data-screen-label="Winds">
+      <div style="background:#0C1526; border:1px solid #1B2941; padding:16px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.16em; color:#6B7A94; margin-bottom:14px">Winds — KHWO</div>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; font:500 12px 'IBM Plex Mono',monospace; color:#6B7A94; margin-bottom:8px">
+          <span style="{{ wxDotStyle }}"></span>
+          <span>{{ wxText }}</span>
+          <button onClick="{{ onWxRefresh }}" style="margin-left:auto; background:transparent; color:#9FB2D1; border:1px solid #1B2941; border-radius:0; padding:10px 16px; font:600 11px Archivo; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer">Refresh</button>
+        </div>
+        <div style="margin:0 0 14px; font:400 12px 'IBM Plex Mono',monospace; color:#9FB2D1; letter-spacing:0.02em">{{ wxMetar }}</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">Dir (°)</label>
+            <input type="number" inputMode="numeric" min="0" max="360" step="10" value="{{ inp.wdir }}" onInput="{{ set.wdir }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">Speed (kt)</label>
+            <input type="number" inputMode="numeric" min="0" step="1" value="{{ inp.wspd }}" onInput="{{ set.wspd }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">Gust (kt)</label>
+            <input type="number" inputMode="numeric" min="0" step="1" value="{{ inp.wgst }}" onInput="{{ set.wgst }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:#6B7A94; margin-top:8px">METAR winds are true (+7° for magnetic at KHWO). ATIS/tower winds are already magnetic.</div>
+        <table style="width:100%; border-collapse:collapse; text-align:right; font-variant-numeric:tabular-nums; font:500 13px 'IBM Plex Mono',monospace; margin-top:14px">
+          <thead>
+            <tr>
+              <th style="padding:8px; border-bottom:1px solid #1B2941; color:#6B7A94; font:600 9.5px Archivo; text-transform:uppercase; letter-spacing:0.12em; text-align:left">Runway</th>
+              <th style="padding:8px; border-bottom:1px solid #1B2941; color:#6B7A94; font:600 9.5px Archivo; text-transform:uppercase; letter-spacing:0.12em">Headwind</th>
+              <th style="padding:8px; border-bottom:1px solid #1B2941; color:#6B7A94; font:600 9.5px Archivo; text-transform:uppercase; letter-spacing:0.12em">Crosswind</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ rwyRows }}" as="r" hint-placeholder-count="4">
+              <tr>
+                <td style="padding:9px 8px; border-bottom:1px solid #1B2941; font-family:Archivo; font-size:13px; color:#9FB2D1; text-align:left">{{ r.name }}</td>
+                <td style="padding:9px 8px; border-bottom:1px solid #1B2941"><span style="{{ r.hwStyle }}">{{ r.hw }}</span></td>
+                <td style="padding:9px 8px; border-bottom:1px solid #1B2941"><span style="{{ r.xwStyle }}">{{ r.xw }}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <div style="font-size:11.5px; color:#6B7A94; margin-top:8px">{{ rwyNote }}</div>
+      </div>
+      <div style="background:#0C1526; border:1px solid #1B2941; padding:16px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.16em; color:#6B7A94; margin-bottom:14px">Wind Correction</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">Course (°)</label>
+            <input type="number" inputMode="numeric" min="0" max="360" step="1" value="{{ inp.crs }}" onInput="{{ set.crs }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">TAS (kt)</label>
+            <input type="number" inputMode="numeric" min="1" step="1" value="{{ inp.tas }}" onInput="{{ set.tas }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:#6B7A94; margin-top:6px">Use the same reference (true or magnetic) as the wind above.</div>
+        <div style="font-size:13px; color:#EDF1F7; margin-top:10px">{{ wcaText }}</div>
+        <div style="font-size:11.5px; color:#6B7A94; margin-top:12px; border-top:1px solid #1B2941; padding-top:12px">Values shown exactly as reported — no conversions applied for you. Runway numbers are magnetic. Always confirm with the ATIS/tower before flight · <a href="https://www.liveatc.net/search/?icao=KHWO" target="_blank" rel="noopener">Listen to KHWO on LiveATC ↗</a></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ tabPerf }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; flex-direction:column; gap:14px; padding:14px 12px" data-screen-label="Performance">
+      <div style="background:#0C1526; border:1px solid #1B2941; padding:16px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.16em; color:#6B7A94; margin-bottom:14px">Performance — {{ heroTail }}</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">Field Elev (ft)</label>
+            <input type="number" inputMode="numeric" step="10" value="{{ inp.fe }}" onInput="{{ set.fe }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">Altim (inHg)</label>
+            <input type="number" inputMode="decimal" step="0.01" value="{{ inp.alt }}" onInput="{{ set.alt }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <label style="font:600 10.5px Archivo; letter-spacing:0.07em; text-transform:uppercase; color:#9FB2D1">OAT (°C)</label>
+            <input type="number" inputMode="numeric" step="1" value="{{ inp.oat }}" onInput="{{ set.oat }}" style="padding:13px 10px; border:1px solid #1B2941; border-radius:0; font:500 16px 'IBM Plex Mono',monospace; background:#080D16; color:#EDF1F7; width:100%; box-sizing:border-box; appearance:none">
+          </div>
+        </div>
+        <sc-if value="{{ perfReady }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:24px; margin:16px 0 10px; font-size:15px">
+            <div><strong>PA:</strong> <span style="font-family:'IBM Plex Mono',monospace">{{ perfPa }}</span> ft</div>
+            <div><strong>DA:</strong> <span style="font-family:'IBM Plex Mono',monospace">{{ perfDa }}</span> ft</div>
+          </div>
+          <div style="font-size:11.5px; color:#6B7A94; margin-bottom:12px">{{ perfSpeeds }}</div>
+          <div style="font-size:14px; line-height:1.6"><span style="{{ perfToStyle }}">{{ perfToText }}</span></div>
+          <div style="font-size:14px; line-height:1.6"><span style="{{ perfLdStyle }}">{{ perfLdText }}</span></div>
+        </sc-if>
+        <sc-if value="{{ perfEmpty }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:13.5px; color:#6B7A94; margin-top:16px">Enter field elevation, altimeter, and OAT to compute take-off and landing distances.</div>
+        </sc-if>
+        <div style="font-size:11.5px; color:#6B7A94; margin-top:14px; border-top:1px solid #1B2941; padding-top:12px">Short field · at max gross · conservative — from the school performance card.</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <footer style="text-align:center; color:#6B7A94; font-size:11px; padding:8px 20px 20px; line-height:1.6">
+    Training aid. Verify all figures against the aircraft's official W&B records and POH before flight.<br>
+    Live positions via adsb.lol (may lag or drop out) — never use for traffic separation.
+  </footer>
+
+  <sc-if value="{{ pickerOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePicker }}" style="position:fixed; inset:0; z-index:1000; background:rgba(4,7,12,0.78); display:flex; align-items:flex-end; justify-content:center">
+      <div onClick="{{ stopProp }}" style="width:100%; max-width:460px; background:#0C1526; border-top:2px solid #4A7DD6; max-height:80vh; overflow-y:auto; padding:18px 14px 32px; box-sizing:border-box">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+          <div style="font:600 10px 'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:0.16em; color:#6B7A94">Select aircraft</div>
+          <button onClick="{{ closePicker }}" style="background:transparent; color:#9FB2D1; border:1px solid #1B2941; padding:8px 14px; font:600 11px Archivo; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer">Close</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:12px">
+          <sc-for list="{{ pickerTabs }}" as="t" hint-placeholder-count="2">
+            <button onClick="{{ t.onTap }}" style="{{ t.style }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+          <sc-for list="{{ pickerRows }}" as="p" hint-placeholder-count="8">
+            <button onClick="{{ p.onTap }}" style="{{ p.style }}">
+              <span style="font:600 15px 'IBM Plex Mono',monospace">{{ p.tail }}</span>
+              <span style="{{ p.badgeStyle }}">{{ p.badge }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <nav style="position:fixed; bottom:0; left:0; right:0; z-index:900; background:#080D16; border-top:1px solid #1B2941">
+    <div style="max-width:460px; margin:0 auto; display:flex; padding-bottom:env(safe-area-inset-bottom)">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+        <button onClick="{{ t.onTap }}" style="{{ t.style }}">{{ t.label }}</button>
+      </sc-for>
+    </div>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:932},&quot;defaultTab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;wb&quot;,&quot;map&quot;,&quot;wind&quot;,&quot;perf&quot;],&quot;default&quot;:&quot;wb&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;showCgByDefault&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;autoRefreshWx&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+const AIRCRAFT = [
+  { tail: "N4974G", hex: "a62d04", model: "N",  emptyWeight: 1542,    emptyMoment: 60803.25, maxGross: 2300 },
+  { tail: "N53107", hex: "a6b69c", model: "P",  emptyWeight: 1537.1,  emptyMoment: 57745.38, maxGross: 2400 },
+  { tail: "N53996", hex: "a6d58e", model: "P",  emptyWeight: 1526,    emptyMoment: 58083.00, maxGross: 2400 },
+  { tail: "N62218", hex: "a82047", model: "P",  emptyWeight: 1504,    emptyMoment: 57962.51, maxGross: 2400 },
+  { tail: "N65645", hex: "a8a606", model: "P",  emptyWeight: 1472.1,  emptyMoment: 58501.89, maxGross: 2400 },
+  { tail: "N66174", hex: "a8bb5a", model: "P",  emptyWeight: 1565,    emptyMoment: 60552.50, maxGross: 2400 },
+  { tail: "N734BH", hex: "a9da08", model: "N",  emptyWeight: 1510,    emptyMoment: 56075.00, maxGross: 2400 },
+  { tail: "N737PY", hex: "a9e668", model: "N",  emptyWeight: 1486.6,  emptyMoment: 58007.70, maxGross: 2300 },
+  { tail: "N905WA", hex: "ac83b4", model: "N",  emptyWeight: 1541,    emptyMoment: 59968.75, maxGross: 2300 },
+  { tail: "N906WA", hex: "ac876b", model: "N",  emptyWeight: 1514,    emptyMoment: 56558.50, maxGross: 2300 },
+  { tail: "N92324", hex: "accc0a", model: "M",  emptyWeight: 1531,    emptyMoment: 58953.00, maxGross: 2300 },
+  { tail: "N155SK", hex: "a0de5c", model: "152", emptyWeight: 1180.94, emptyMoment: 36241.49, maxGross: 1670 },
+  { tail: "N24857", hex: "a250de", model: "152", emptyWeight: 1230,    emptyMoment: 37365.00, maxGross: 1670 },
+  { tail: "N46953", hex: "a5be2d", model: "152", emptyWeight: 1194.79, emptyMoment: 35875.51, maxGross: 1670 },
+  { tail: "N47586", hex: "a5d73c", model: "152", emptyWeight: 1241,    emptyMoment: 39397.00, maxGross: 1670 },
+  { tail: "N5551L", hex: "a71484", model: "152", emptyWeight: 1238,    emptyMoment: 39112.51, maxGross: 1670 },
+  { tail: "N6097M", hex: "a7ec07", model: "152", emptyWeight: 1228,    emptyMoment: 37487.75, maxGross: 1670 },
+  { tail: "N6300Q", hex: "a84023", model: "152", emptyWeight: 1225,    emptyMoment: 37326.50, maxGross: 1670 },
+  { tail: "N65401", hex: "a89e08", model: "152", emptyWeight: 1227.86, emptyMoment: 37718.69, maxGross: 1670 },
+  { tail: "N67324", hex: "a8e998", model: "152", emptyWeight: 1232.8,  emptyMoment: 37650.45, maxGross: 1670 },
+  { tail: "N67549", hex: "a8f151", model: "152", emptyWeight: 1157,    emptyMoment: 34710.00, maxGross: 1670 },
+  { tail: "N908WA", hex: "ac8ed9", model: "152", emptyWeight: 1245,    emptyMoment: 38657.00, maxGross: 1670 },
+  { tail: "N93730", hex: "ad0284", model: "152", emptyWeight: 1235.8,  emptyMoment: 37363.20, maxGross: 1670 },
+];
+const FUEL_LB_PER_GAL = 6.0;
+const TYPES = {
+  '172': {
+    label: 'C-172',
+    arms: { front: 37.0, row2: 73.0, row3: 95.0, fuel: 11500 / 240 },
+    frontLabel: 'Pilot & Front Pass. (lb)',
+    row2Label: 'Rear Passengers', row2Helper: 'Backpacks & bags usually ride here (arm 73).',
+    row3Label: 'Baggage', row3Helper: 'Baggage area (arm 95, max 120 lb) — usually left blank.',
+    fuelNote: '', usableGal: 40, taxiDefault: -7, rampAllowance: 7, burnRateDefault: 8.0,
+    demoXwind: 15, cruiseTAS: 110, plot: { xMin: 34, xMax: 48, yMin: 1500 }, hasUtility: true,
+  },
+  '152': {
+    label: 'C-152',
+    arms: { front: 39.0, row2: 64.0, row3: 84.0, fuel: 6200 / 147 },
+    fuelArmDisplay: 42.17,
+    frontLabel: 'Pilot & Passenger (lb)',
+    row2Label: 'Baggage Area 1', row2Helper: 'Behind seats (arm 64, max 120 lb; Areas 1+2 combined max 120).',
+    row3Label: 'Baggage Area 2 (shelf)', row3Helper: 'Aft shelf (arm 84, max 40 lb) — usually left blank.',
+    fuelNote: 'Standard tanks assumed (24.5 gal usable) — verify for this tail.',
+    usableGal: 24.5, taxiDefault: -6, rampAllowance: 5, burnRateDefault: 6.0,
+    demoXwind: 12, cruiseTAS: 90, plot: { xMin: 30, xMax: 37, yMin: 1000 }, hasUtility: false,
+  },
+};
+const typeKeyOf = ac => (ac.model === '152' ? '152' : '172');
+const perfKeyOf = model => (model === 'N' || model === 'M') ? 'NM' : model;
+const ENVELOPES = {
+  NM: {
+    normal:  [[35.0,1500],[35.0,1950],[38.5,2300],[47.3,2300],[47.3,1500]],
+    utility: [[35.0,1500],[35.0,1950],[35.5,2000],[40.5,2000],[40.5,1500]],
+  },
+  P: {
+    normal:  [[35.0,1500],[35.0,1950],[39.5,2400],[47.3,2400],[47.3,1500]],
+    utility: [[35.0,1500],[35.0,1950],[36.5,2100],[40.5,2100],[40.5,1500]],
+  },
+  '152': { normal: [[31.0,1000],[31.0,1350],[32.65,1670],[36.5,1670],[36.5,1000]] },
+};
+const PERF = {
+  NM: {
+    label: "C-172 N/M · 2300 lb · short field",
+    takeoffSpeedsKIAS: { liftoff: 52, at50ft: 59 }, landingSpeedKIAS: 60,
+    takeoff: { temps: [0,10,20,30,40], rows: [
+      { pa: 0,    cells: [[720,1300],[775,1390],[835,1490],[895,1590],[960,1700]] },
+      { pa: 1000, cells: [[790,1420],[850,1525],[915,1630],[980,1745],[1050,1865]] },
+      { pa: 2000, cells: [[865,1555],[930,1670],[1000,1790],[1075,1915],[1155,2055]] },
+      { pa: 3000, cells: [[950,1710],[1025,1835],[1100,1970],[1185,2115],[1270,2265]] },
+      { pa: 4000, cells: [[1045,1880],[1125,2025],[1210,2175],[1300,2335],[1400,2510]] },
+      { pa: 5000, cells: [[1150,2075],[1240,2240],[1335,2410],[1435,2595],[1540,2795]] },
+      { pa: 6000, cells: [[1265,2305],[1365,2485],[1475,2680],[1585,2895],[1705,3125]] },
+      { pa: 7000, cells: [[1400,2565],[1510,2770],[1630,3000],[1755,3245],[1890,3515]] },
+      { pa: 8000, cells: [[1550,2870],[1675,3110],[1805,3375],[1945,3670],[2095,3990]] },
+    ]},
+    landing: { temps: [0,10,20,30,40], rows: [
+      { pa: 0,    cells: [[495,1205],[510,1235],[530,1265],[545,1295],[565,1330]] },
+      { pa: 1000, cells: [[510,1235],[530,1265],[550,1300],[565,1330],[585,1365]] },
+      { pa: 2000, cells: [[530,1265],[550,1300],[570,1335],[590,1370],[610,1405]] },
+      { pa: 3000, cells: [[550,1300],[570,1335],[590,1370],[610,1405],[630,1440]] },
+      { pa: 4000, cells: [[570,1335],[590,1370],[615,1410],[635,1445],[655,1480]] },
+      { pa: 5000, cells: [[590,1370],[615,1415],[635,1450],[665,1485],[680,1525]] },
+      { pa: 6000, cells: [[615,1415],[640,1455],[660,1490],[685,1535],[705,1570]] },
+      { pa: 7000, cells: [[640,1455],[660,1495],[685,1535],[710,1575],[730,1615]] },
+      { pa: 8000, cells: [[665,1500],[690,1540],[710,1580],[735,1620],[760,1665]] },
+    ]},
+  },
+  P: {
+    label: "C-172 P · 2400 lb · short field",
+    takeoffSpeedsKIAS: { liftoff: 51, at50ft: 56 }, landingSpeedKIAS: 61,
+    takeoff: { temps: [0,10,20,30,40], rows: [
+      { pa: 0,    cells: [[795,1460],[860,1570],[925,1685],[995,1810],[1065,1945]] },
+      { pa: 1000, cells: [[875,1605],[940,1725],[1015,1860],[1090,2000],[1170,2155]] },
+      { pa: 2000, cells: [[960,1770],[1035,1910],[1115,2060],[1200,2220],[1290,2395]] },
+      { pa: 3000, cells: [[1055,1960],[1140,2120],[1230,2295],[1325,2480],[1425,2685]] },
+      { pa: 4000, cells: [[1165,2185],[1260,2365],[1355,2570],[1465,2790],[1575,3030]] },
+      { pa: 5000, cells: [[1285,2445],[1390,2660],[1500,2895],[1620,3160],[1745,3455]] },
+      { pa: 6000, cells: [[1425,2755],[1540,3015],[1665,3300],[1800,3620],[1940,3990]] },
+      { pa: 7000, cells: [[1580,3140],[1710,3450],[1850,3805],[2000,4220],null] },
+      { pa: 8000, cells: [[1755,3615],[1905,4015],[2060,4480],null,null] },
+    ]},
+    landing: { temps: [0,10,20,30,40], rows: [
+      { pa: 0,    cells: [[510,1235],[530,1265],[550,1295],[570,1325],[585,1350]] },
+      { pa: 1000, cells: [[530,1265],[550,1295],[570,1325],[590,1360],[610,1390]] },
+      { pa: 2000, cells: [[550,1295],[570,1330],[590,1360],[610,1390],[630,1425]] },
+      { pa: 3000, cells: [[570,1330],[590,1360],[615,1395],[635,1430],[655,1460]] },
+      { pa: 4000, cells: [[595,1365],[615,1400],[635,1430],[660,1470],[680,1500]] },
+      { pa: 5000, cells: [[615,1400],[640,1435],[660,1470],[685,1510],[705,1540]] },
+      { pa: 6000, cells: [[640,1435],[660,1470],[685,1510],[710,1550],[730,1580]] },
+      { pa: 7000, cells: [[665,1475],[690,1515],[710,1550],[735,1590],[760,1630]] },
+      { pa: 8000, cells: [[690,1515],[715,1555],[740,1595],[765,1635],[790,1675]] },
+    ]},
+  },
+  '152': {
+    label: "C-152 · 1670 lb · short field",
+    takeoffSpeedsKIAS: { liftoff: 50, at50ft: 54 }, landingSpeedKIAS: 54,
+    takeoff: { temps: [0,10,20,30,40], rows: [
+      { pa: 0,    cells: [[640,1190],[695,1290],[755,1390],[810,1495],[875,1605]] },
+      { pa: 1000, cells: [[705,1310],[765,1420],[825,1530],[890,1645],[960,1770]] },
+      { pa: 2000, cells: [[775,1445],[840,1565],[910,1690],[980,1820],[1055,1960]] },
+      { pa: 3000, cells: [[855,1600],[925,1730],[1000,1870],[1080,2020],[1165,2185]] },
+      { pa: 4000, cells: [[940,1775],[1020,1920],[1100,2080],[1190,2250],[1285,2440]] },
+      { pa: 5000, cells: [[1040,1970],[1125,2140],[1215,2320],[1315,2525],[1420,2750]] },
+      { pa: 6000, cells: [[1145,2200],[1245,2395],[1345,2610],[1455,2855],[1570,3125]] },
+      { pa: 7000, cells: [[1270,2470],[1375,2705],[1490,2960],[1615,3255],[1745,3590]] },
+      { pa: 8000, cells: [[1405,2800],[1525,3080],[1655,3395],[1795,3765],[1940,4195]] },
+    ]},
+    landing: { temps: [0,10,20,30,40], rows: [
+      { pa: 0,    cells: [[450,1160],[465,1185],[485,1215],[500,1240],[515,1265]] },
+      { pa: 1000, cells: [[465,1185],[485,1215],[500,1240],[520,1270],[535,1295]] },
+      { pa: 2000, cells: [[485,1215],[500,1240],[520,1270],[535,1300],[555,1330]] },
+      { pa: 3000, cells: [[500,1240],[520,1275],[540,1305],[560,1335],[575,1360]] },
+      { pa: 4000, cells: [[520,1275],[540,1305],[560,1335],[580,1370],[600,1400]] },
+      { pa: 5000, cells: [[540,1305],[560,1335],[580,1370],[600,1400],[620,1435]] },
+      { pa: 6000, cells: [[560,1340],[580,1370],[605,1410],[625,1440],[645,1475]] },
+      { pa: 7000, cells: [[585,1375],[605,1410],[625,1440],[650,1480],[670,1515]] },
+      { pa: 8000, cells: [[605,1410],[630,1450],[650,1480],[675,1520],[695,1555]] },
+    ]},
+  },
+};
+const RUNWAYS = [
+  { name: 'RWY 10 (L/R)', hdg: 100 }, { name: 'RWY 28 (L/R)', hdg: 280 },
+  { name: 'RWY 1 (L/R)', hdg: 10 }, { name: 'RWY 19 (L/R)', hdg: 190 },
+];
+const WX_URL = 'https://api.weather.gov/stations/KHWO/observations/latest';
+const KHWO = { lat: 26.0012, lon: -80.2407 };
+const modelLabel = a => a.model === '152' ? 'C-152' : 'C-172 ' + a.model;
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const tailForType = key => {
+  const saved = lsGet('wayman-wb-tail-' + key);
+  if (AIRCRAFT.some(a => a.tail === saved && typeKeyOf(a) === key)) return saved;
+  const first = AIRCRAFT.find(a => typeKeyOf(a) === key);
+  return first ? first.tail : null;
+};
+const fmt = (v, dp) => (v === null || v === undefined || isNaN(v)) ? '—' : v.toFixed(dp);
+const num = s => { const v = parseFloat(s); return isNaN(v) || v < 0 ? 0 : v; };
+const ago = ms => {
+  const m = Math.round(ms / 60000);
+  if (m < 1) return 'just now'; if (m === 1) return '1 min ago';
+  if (m < 60) return m + ' min ago';
+  const h = Math.floor(m / 60); return h + ' h ' + (m % 60) + ' min ago';
+};
+function isPointOnSegment(px, py, x1, y1, x2, y2) {
+  const epsilon = 0.01;
+  const cross = Math.abs((py - y1) * (x2 - x1) - (px - x1) * (y2 - y1));
+  if (cross > epsilon) return false;
+  const dot = (px - x1) * (x2 - x1) + (py - y1) * (y2 - y1);
+  if (dot < -epsilon) return false;
+  const sqLen = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+  if (dot > sqLen + epsilon) return false;
+  return true;
+}
+function pointInPoly(pt, poly) {
+  let [x, y] = pt; let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    let [xi, yi] = poly[i]; let [xj, yj] = poly[j];
+    if (isPointOnSegment(x, y, xi, yi, xj, yj)) return true;
+    let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+function getEnvelopePoly(model, type, maxGross) {
+  const key = perfKeyOf(model);
+  return ENVELOPES[key][type].map(pt => {
+    let y = pt[1];
+    if (key === 'NM' && y === 2300) y = maxGross;
+    return [pt[0], y];
+  });
+}
+function getPerfTableValues(table, pa, oat) {
+  let clamped = false; let safePa = pa; let safeOat = oat;
+  if (safePa < 0) { safePa = 0; clamped = true; }
+  if (safeOat < 0) { safeOat = 0; clamped = true; }
+  if (safePa > 8000 || safeOat > 40) return null;
+  const temps = table.temps; const rows = table.rows;
+  let r1 = 0, r2 = 0;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].pa >= safePa) { r2 = i; r1 = Math.max(0, i - 1); if (rows[i].pa === safePa) r1 = i; break; }
+  }
+  let c1 = 0, c2 = 0;
+  for (let i = 0; i < temps.length; i++) {
+    if (temps[i] >= safeOat) { c2 = i; c1 = Math.max(0, i - 1); if (temps[i] === safeOat) c1 = i; break; }
+  }
+  let v11 = rows[r1].cells[c1], v12 = rows[r1].cells[c2], v21 = rows[r2].cells[c1], v22 = rows[r2].cells[c2];
+  if (!v11 || !v12 || !v21 || !v22) return null;
+  let f_pa = (r1 === r2) ? 0 : (safePa - rows[r1].pa) / (rows[r2].pa - rows[r1].pa);
+  let f_temp = (c1 === c2) ? 0 : (safeOat - temps[c1]) / (temps[c2] - temps[c1]);
+  let lerp = (a, b, t) => a + (b - a) * t;
+  let ground = lerp(lerp(v11[0], v12[0], f_temp), lerp(v21[0], v22[0], f_temp), f_pa);
+  let over = lerp(lerp(v11[1], v12[1], f_temp), lerp(v21[1], v22[1], f_temp), f_pa);
+  return [Math.ceil(ground / 5) * 5, Math.ceil(over / 5) * 5, clamped];
+}
+function buildMetar(p) {
+  const pad = (n, w) => String(n).padStart(w, '0');
+  const parts = ['KHWO'];
+  if (p.timestamp) {
+    const d = new Date(p.timestamp);
+    parts.push(pad(d.getUTCDate(), 2) + pad(d.getUTCHours(), 2) + pad(d.getUTCMinutes(), 2) + 'Z');
+  }
+  const nv = f => (p[f] && typeof p[f].value === 'number' ? p[f].value : null);
+  const spd = nv('windSpeed') !== null ? Math.round(nv('windSpeed') * 0.539957) : null;
+  const gst = nv('windGust') !== null ? Math.round(nv('windGust') * 0.539957) : null;
+  const dir = nv('windDirection') !== null ? Math.round(nv('windDirection')) : null;
+  if (spd !== null) {
+    if (spd === 0) parts.push('00000KT');
+    else parts.push((dir !== null ? pad(dir, 3) : 'VRB') + pad(spd, 2) + (gst !== null && gst > spd ? 'G' + pad(gst, 2) : '') + 'KT');
+  }
+  if (nv('visibility') !== null) {
+    const sm = nv('visibility') / 1609.344;
+    parts.push((sm >= 10 ? '10' : sm.toFixed(sm < 3 ? 1 : 0)) + 'SM');
+  }
+  (p.cloudLayers || []).forEach(l => {
+    if (!l.amount) return;
+    if (l.amount === 'CLR' || l.amount === 'SKC') { parts.push(l.amount); return; }
+    const base = l.base && typeof l.base.value === 'number' ? pad(Math.round(l.base.value * 3.28084 / 100), 3) : '';
+    parts.push(l.amount + base);
+  });
+  const fmtT = v => (v < 0 ? 'M' + pad(Math.abs(v), 2) : pad(v, 2));
+  const t = nv('temperature'), td = nv('dewpoint');
+  if (t !== null && td !== null) parts.push(fmtT(Math.round(t)) + '/' + fmtT(Math.round(td)));
+  if (nv('barometricPressure') !== null) parts.push('A' + pad(Math.round(nv('barometricPressure') / 3386.389 * 100), 4));
+  return parts.join(' ');
+}
+const CHIP_BASE = { padding: '7px 10px', font: "600 10.5px 'IBM Plex Mono',monospace", letterSpacing: '0.05em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center' };
+const CHIP_KIND = {
+  ok:   { background: '#0E2A1E', color: '#5BCB96' },
+  warn: { background: '#33290F', color: '#E8C468' },
+  fail: { background: '#331416', color: '#F08080' },
+  info: { background: '#16233C', color: '#9FB2D1' },
+};
+const chip = (kind, text) => ({ style: { ...CHIP_BASE, ...CHIP_KIND[kind] }, text });
+const noteStyle = ok => ({ font: "500 9px 'IBM Plex Mono',monospace", letterSpacing: '0.04em', marginTop: '3px', minHeight: '14px', color: ok ? '#5BCB96' : '#F08080' });
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const saved = lsGet('wayman-wb-tail');
+    const tail = AIRCRAFT.some(a => a.tail === saved) ? saved : null;
+    const type = tail ? typeKeyOf(AIRCRAFT.find(a => a.tail === tail)) : '172';
+    const T = TYPES[type];
+    this.state = {
+      tab: this.props.defaultTab ?? 'wb',
+      tail, type, fltType: 'all',
+      pickerOpen: false, fleetOpen: false,
+      cgOpen: this.props.showCgByDefault ?? false,
+      mapVisited: (this.props.defaultTab ?? 'wb') === 'map',
+      inp: {
+        front: '', rear: '', bag: '', fob: String(T.usableGal), burn: '', burnUnit: 'lb',
+        taxi: String(T.taxiDefault), burnrate: T.burnRateDefault.toFixed(1), daynight: 'day',
+        fe: '', alt: '29.92', oat: '', wdir: '', wspd: '', wgst: '', crs: '', tas: String(T.cruiseTAS),
+      },
+      wx: { cls: 'idle', text: 'Fetching KHWO wind…', metar: '—' },
+      acStatus: { cls: 'checking', text: 'CHECKING LIVE STATUS…' },
+    };
+    const base = 'https://adsb.lol/?icaoFilter=' + AIRCRAFT.map(a => a.hex).join(',') +
+      '&lat=' + KHWO.lat + '&lon=' + KHWO.lon + '&zoom=11&baseMap=carto_dark_all';
+    this.fullMapUrl = base;
+    this.globeUrl = base + '&hideSidebar&hideButtons&altitudeChart=0';
+    const mk = k => e => this.setState(s => ({ inp: { ...s.inp, [k]: e.target.value } }));
+    this.set = {};
+    ['front','rear','bag','fob','burn','taxi','burnrate','daynight','fe','alt','oat','wdir','wspd','wgst','crs','tas'].forEach(k => { this.set[k] = mk(k); });
+    this.stopProp = e => e.stopPropagation();
+  }
+  componentDidMount() {
+    this.fetchWx();
+    if (this.props.autoRefreshWx ?? true) this.wxTimer = setInterval(() => this.fetchWx(), 5 * 60000);
+    this.fetchAcStatus();
+    this.statusTimer = setInterval(() => this.fetchAcStatus(), 60000);
+  }
+  componentWillUnmount() { if (this.wxTimer) clearInterval(this.wxTimer); if (this.statusTimer) clearInterval(this.statusTimer); }
+  async fetchAcStatus(tailArg) {
+    const tail = tailArg ?? this.state.tail;
+    const ac = AIRCRAFT.find(a => a.tail === tail);
+    if (!ac) return;
+    if (tailArg) this.setState({ acStatus: { cls: 'checking', text: 'CHECKING LIVE STATUS…' } });
+    try {
+      const res = await fetch('https://api.adsb.lol/v2/hex/' + ac.hex, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const d = await res.json();
+      if (this.state.tail !== tail) return;
+      const p = (d.ac && d.ac[0]) || null;
+      if (!p) this.setState({ acStatus: { cls: 'off', text: 'NO SIGNAL — LIKELY PARKED AT KHWO' } });
+      else if (p.alt_baro === 'ground') this.setState({ acStatus: { cls: 'gnd', text: 'ON THE GROUND — TRANSMITTING (TAXIING)' } });
+      else {
+        const alt = typeof p.alt_baro === 'number' ? Math.round(p.alt_baro).toLocaleString() + ' FT' : '';
+        const gs = typeof p.gs === 'number' ? Math.round(p.gs) + ' KT' : '';
+        this.setState({ acStatus: { cls: 'air', text: ['FLYING NOW', alt, gs].filter(Boolean).join(' · ') } });
+      }
+    } catch (e) {
+      if (this.state.tail === tail) this.setState({ acStatus: { cls: 'err', text: 'LIVE STATUS UNAVAILABLE — CHECK THE MAP' } });
+    }
+  }
+  async fetchWx() {
+    try {
+      const res = await fetch(WX_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const p = (await res.json()).properties || {};
+      const dirTrue = p.windDirection ? p.windDirection.value : null;
+      const spdKmh = p.windSpeed ? p.windSpeed.value : null;
+      const gstKmh = p.windGust ? p.windGust.value : null;
+      const t = p.timestamp ? new Date(p.timestamp).getTime() : Date.now();
+      this.setState(s => ({
+        wx: { cls: 'live', text: 'KHWO wind observed ' + ago(Date.now() - t), metar: buildMetar(p) + ' — decoded from NWS, not the official raw text' },
+        inp: {
+          ...s.inp,
+          wdir: typeof dirTrue === 'number' ? String(Math.round(dirTrue)) : s.inp.wdir,
+          wspd: typeof spdKmh === 'number' ? String(Math.round(spdKmh * 0.539957)) : s.inp.wspd,
+          wgst: typeof gstKmh === 'number' ? String(Math.round(gstKmh * 0.539957)) : '',
+        },
+      }));
+    } catch (e) {
+      this.setState(s => ({ wx: { ...s.wx, cls: 'err', text: 'Weather source unreachable — enter wind manually' } }));
+    }
+  }
+  selectTail(tail, close) {
+    const ac = AIRCRAFT.find(a => a.tail === tail);
+    if (!ac) return;
+    const key = typeKeyOf(ac); const T = TYPES[key];
+    lsSet('wayman-wb-tail', tail); lsSet('wayman-wb-tail-' + key, tail);
+    this.setState(s => {
+      const inp = { ...s.inp };
+      if (s.type !== key) {
+        inp.fob = String(T.usableGal); inp.taxi = String(T.taxiDefault);
+        inp.burnrate = T.burnRateDefault.toFixed(1); inp.tas = String(T.cruiseTAS);
+      }
+      return { tail, type: key, inp, pickerOpen: close ? false : s.pickerOpen };
+    });
+    this.fetchAcStatus(tail);
+  }
+  renderVals() {
+    const s = this.state;
+    const ac = AIRCRAFT.find(a => a.tail === s.tail) || null;
+    const T = TYPES[s.type];
+    const mono = "'IBM Plex Mono',monospace";
+    const tabDefs = [['wb', 'W&B'], ['map', 'Map'], ['wind', 'Winds'], ['perf', 'Perf']];
+    const tabs = tabDefs.map(([k, label]) => ({
+      label,
+      onTap: () => this.setState({ tab: k, mapVisited: s.mapVisited || k === 'map' }),
+      style: {
+        flex: 1, padding: '16px 0 14px', background: 'transparent', border: 'none',
+        borderTop: s.tab === k ? '2px solid #4A7DD6' : '2px solid transparent',
+        color: s.tab === k ? '#EDF1F7' : '#6B7A94', font: '600 11px Archivo',
+        letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
+      },
+    }));
+    const fbtn = active => ({
+      background: active ? '#10233F' : 'transparent', color: active ? '#EDF1F7' : '#6B7A94',
+      border: '1px solid #1B2941', borderRadius: 0, padding: '8px 14px',
+      font: '600 10px Archivo', letterSpacing: '0.07em', textTransform: 'uppercase', cursor: 'pointer',
+    });
+    const pickerTabs = ['172', '152'].map(key => ({
+      label: TYPES[key].label + ' · ' + AIRCRAFT.filter(a => typeKeyOf(a) === key).length,
+      onTap: () => { const t = tailForType(key); if (t) this.selectTail(t, false); },
+      style: {
+        flex: 1, padding: '12px 0', background: s.type === key ? '#10233F' : 'transparent',
+        color: s.type === key ? '#EDF1F7' : '#6B7A94',
+        border: s.type === key ? '1px solid #4A7DD6' : '1px solid #1B2941',
+        font: '600 12px Archivo', letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
+      },
+    }));
+    const pickerRows = AIRCRAFT.filter(a => typeKeyOf(a) === s.type).map(a => {
+      const active = a.tail === s.tail;
+      return {
+        tail: a.tail, badge: (a.model === '152' ? '152' : a.model) + ' · ' + a.maxGross + ' lb',
+        badgeStyle: { font: '500 10.5px ' + mono, color: active ? '#45526B' : '#6B7A94', letterSpacing: '0.04em' },
+        onTap: () => this.selectTail(a.tail, true),
+        style: {
+          minHeight: '56px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+          justifyContent: 'center', gap: '2px', padding: '8px 12px', textAlign: 'left', cursor: 'pointer',
+          background: active ? '#EDF1F7' : '#080D16', color: active ? '#080D16' : '#EDF1F7',
+          border: active ? '1px solid #EDF1F7' : '1px solid #1B2941', borderRadius: 0,
+        },
+      };
+    });
+    const fleetFilters = [['all', 'All'], ['172', 'C-172'], ['152', 'C-152']].map(([v, label]) => ({
+      label, onTap: () => this.setState({ fltType: v }),
+      style: { ...fbtn(s.fltType === v), borderRight: v === '152' ? '1px solid #1B2941' : 'none', flex: 1 },
+    }));
+    const fleetRows = AIRCRAFT.filter(a => s.fltType === 'all' || typeKeyOf(a) === s.fltType).map(a => {
+      const sel = a.tail === s.tail;
+      return {
+        tail: a.tail, model: modelLabel(a),
+        onTap: () => { this.selectTail(a.tail, true); this.setState({ tab: 'wb' }); },
+        style: {
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+          minHeight: '48px', padding: '8px 12px', cursor: 'pointer', borderRadius: 0,
+          background: sel ? '#10233F' : '#080D16', color: '#EDF1F7',
+          border: sel ? '1px solid #4A7DD6' : '1px solid #1B2941',
+        },
+      };
+    });
+    // ---- W&B calculation ----
+    const wFront = num(s.inp.front), wRear = num(s.inp.rear), wBag = num(s.inp.bag);
+    let galFob = s.inp.fob === '' ? T.usableGal : num(s.inp.fob);
+    if (galFob > T.usableGal) galFob = T.usableGal;
+    const burnInput = num(s.inp.burn);
+    let galBurn = s.inp.burnUnit === 'gal' ? burnInput : burnInput / FUEL_LB_PER_GAL;
+    let burnWarn = false;
+    if (galBurn > galFob) { galBurn = galFob; if (s.inp.burn !== '') burnWarn = true; }
+    const wFob = galFob * FUEL_LB_PER_GAL, wBurn = galBurn * FUEL_LB_PER_GAL;
+    const taxiWeight = s.inp.taxi === '' ? 0 : (parseFloat(s.inp.taxi) || 0);
+    const taxiMoment = taxiWeight * T.arms.fuel;
+    const fuelArmDisp = T.fuelArmDisplay ?? T.arms.fuel;
+    let vals = {};
+    let toWeight = null, cgTo = null, landWeight = null, cgLand = null, remaining = null;
+    if (ac) {
+      const zfw = ac.emptyWeight + wFront + wRear + wBag;
+      const rampWeight = zfw + wFob;
+      toWeight = rampWeight + taxiWeight;
+      landWeight = toWeight - wBurn;
+      const mFront = wFront * T.arms.front, mRear = wRear * T.arms.row2, mBag = wBag * T.arms.row3;
+      const mZfw = ac.emptyMoment + mFront + mRear + mBag;
+      const mFob = wFob * T.arms.fuel;
+      const mRamp = mZfw + mFob, mTo = mRamp + taxiMoment, mBurnV = wBurn * T.arms.fuel, mLand = mTo - mBurnV;
+      const cgZfw = zfw > 0 ? mZfw / zfw : 0, cgRamp = rampWeight > 0 ? mRamp / rampWeight : 0;
+      cgTo = toWeight > 0 ? mTo / toWeight : 0;
+      cgLand = landWeight > 0 ? mLand / landWeight : 0;
+      remaining = (ac.maxGross - ac.emptyWeight) - (wFront + wRear + wBag) - wFob;
+      vals = {
+        wBew: fmt(ac.emptyWeight, 1), aBew: fmt(ac.emptyMoment / ac.emptyWeight, 2), mBew: fmt(ac.emptyMoment, 1),
+        wFront: fmt(wFront, 1), mFront: fmt(mFront, 1),
+        wRear: fmt(wRear, 1), mRear: fmt(mRear, 1),
+        wBag: fmt(wBag, 1), mBag: fmt(mBag, 1),
+        wZfw: fmt(zfw, 1), aZfw: fmt(cgZfw, 2), mZfw: fmt(mZfw, 1),
+        wFob: fmt(wFob, 1), mFob: fmt(mFob, 1),
+        wRamp: fmt(rampWeight, 1), aRamp: fmt(cgRamp, 2), mRamp: fmt(mRamp, 1),
+        mTaxi: fmt(taxiMoment, 1),
+        wTo: fmt(toWeight, 1), aTo: fmt(cgTo, 2), mTo: fmt(mTo, 1),
+        wBurn: fmt(-wBurn, 1), mBurn: fmt(-mBurnV, 1),
+        wLand: fmt(landWeight, 1), aLand: fmt(cgLand, 2), mLand: fmt(mLand, 1),
+      };
+    } else {
+      ['wBew','aBew','mBew','wFront','mFront','wRear','mRear','wBag','mBag','wZfw','aZfw','mZfw','wFob','mFob','wRamp','aRamp','mRamp','mTaxi','wTo','aTo','mTo','wBurn','mBurn','wLand','aLand','mLand'].forEach(k => { vals[k] = '—'; });
+    }
+    // chips
+    let chips = [];
+    if (!ac) chips.push(chip('info', 'Pick a tail number to begin.'));
+    else {
+      const normalPoly = getEnvelopePoly(ac.model, 'normal', ac.maxGross);
+      const utilityPoly = T.hasUtility ? getEnvelopePoly(ac.model, 'utility', ac.maxGross) : null;
+      const aftLimit = Math.max(...normalPoly.map(p => p[0]));
+      const rampW = toWeight - taxiWeight;
+      if (toWeight > ac.maxGross) chips.push(chip('fail', 'Over max gross by ' + (toWeight - ac.maxGross).toFixed(1) + ' lb'));
+      else chips.push(chip('ok', 'Weight ≤ Gross (' + ac.maxGross + ')'));
+      if (rampW > ac.maxGross + T.rampAllowance) chips.push(chip('fail', 'Ramp weight > limit (' + (ac.maxGross + T.rampAllowance) + ')'));
+      const toIn = pointInPoly([cgTo, toWeight], normalPoly);
+      const landIn = pointInPoly([cgLand, landWeight], normalPoly);
+      if (!toIn) {
+        if (cgTo > aftLimit) chips.push(chip('fail', 'Take-off CG ' + (cgTo - aftLimit).toFixed(2) + ' in aft of limit'));
+        else chips.push(chip('fail', 'Take-off CG Out of Envelope'));
+      } else chips.push(chip('ok', 'Take-off CG Normal'));
+      if (!landIn) chips.push(chip('fail', 'Landing CG Out of Envelope'));
+      else chips.push(chip('ok', 'Landing CG Normal'));
+      if (utilityPoly && pointInPoly([cgTo, toWeight], utilityPoly) && pointInPoly([cgLand, landWeight], utilityPoly)) chips.push(chip('info', 'Qualifies for Utility Category'));
+      if (!T.hasUtility) chips.push(chip('info', 'Utility category aircraft'));
+      if (T === TYPES['172']) {
+        if (wBag > 120) chips.push(chip('warn', 'Baggage over 120 lb limit'));
+      } else {
+        if (wRear > 120) chips.push(chip('warn', 'Baggage Area 1 over 120 lb limit'));
+        if (wBag > 40) chips.push(chip('warn', 'Baggage Area 2 over 40 lb limit'));
+        if (wRear + wBag > 120) chips.push(chip('warn', 'Combined baggage over 120 lb limit'));
+      }
+      const rate = parseFloat(s.inp.burnrate) || T.burnRateDefault;
+      const landedFuel = galFob - galBurn;
+      const req = rate * (s.inp.daynight === 'day' ? 0.5 : 1.0);
+      if (landedFuel < req) chips.push(chip('fail', 'Min Reserve Violation (Landed ' + landedFuel.toFixed(1) + ' < Req ' + req.toFixed(1) + ' gal)'));
+      else chips.push(chip('ok', 'Fuel Reserves OK'));
+      if (burnWarn) chips.push(chip('warn', 'Fuel burn clamped to fuel on board'));
+    }
+    // hero / KPI
+    let hero = {
+      heroTail: '—', heroMeta: 'PICK A TAIL NUMBER TO BEGIN',
+      towVal: '—', towNote: '', towNoteStyle: noteStyle(true),
+      cgVal: '—', cgNote: '', cgNoteStyle: noteStyle(true),
+      usefulVal: '—', usefulNote: '', usefulNoteStyle: noteStyle(true),
+    };
+    if (ac) {
+      const normalPoly = getEnvelopePoly(ac.model, 'normal', ac.maxGross);
+      const margin = ac.maxGross - toWeight;
+      const inEnv = pointInPoly([cgTo, toWeight], normalPoly);
+      hero = {
+        heroTail: ac.tail, heroMeta: modelLabel(ac).toUpperCase() + ' · MAX ' + ac.maxGross + ' LB',
+        towVal: toWeight.toFixed(1),
+        towNote: margin >= 0 ? margin.toFixed(0) + ' LB UNDER GROSS' : 'OVER BY ' + (-margin).toFixed(0) + ' LB',
+        towNoteStyle: noteStyle(margin >= 0),
+        cgVal: cgTo.toFixed(2),
+        cgNote: inEnv ? (T.hasUtility ? 'NORMAL CATEGORY' : 'UTILITY CATEGORY') : 'OUT OF ENVELOPE',
+        cgNoteStyle: noteStyle(inEnv),
+        usefulVal: remaining.toFixed(1),
+        usefulNote: remaining >= 0 ? 'LB STILL AVAILABLE' : 'OVERLOADED',
+        usefulNoteStyle: noteStyle(remaining >= 0),
+      };
+    }
+    // CG plot
+    const cgPlot = (ac && s.cgOpen) ? this.buildPlot(ac, T, cgTo, toWeight, cgLand, landWeight) : null;
+    // perf
+    const perfEmpty = s.inp.fe === '' || s.inp.alt === '' || s.inp.oat === '' || !ac;
+    let perf = { perfReady: false, perfEmpty, perfPa: '', perfDa: '', perfSpeeds: '', perfToText: '', perfToStyle: {}, perfLdText: '', perfLdStyle: {} };
+    if (!perfEmpty) {
+      const fe = parseFloat(s.inp.fe), alt = parseFloat(s.inp.alt), oat = parseFloat(s.inp.oat);
+      const pa = fe + (29.92 - alt) * 1000;
+      const isa = 15 - 2 * (pa / 1000);
+      const da = pa + 120 * (oat - isa);
+      const p = PERF[perfKeyOf(ac.model)];
+      const to = getPerfTableValues(p.takeoff, pa, oat);
+      const ld = getPerfTableValues(p.landing, pa, oat);
+      const spd = p.takeoffSpeedsKIAS;
+      const line = (title, d) => d
+        ? { text: title + ': ' + d[0] + ' ft ground roll / ' + d[1] + ' ft over 50-ft obs' + (d[2] ? ' (clamped to chart edge — conservative)' : ''), style: d[2] ? { color: '#E8C468' } : {} }
+        : { text: title + ': Beyond chart data — see POH / instructor.', style: { color: '#F08080', fontWeight: 'bold' } };
+      const toL = line('Take-off', to), ldL = line('Landing', ld);
+      perf = {
+        perfReady: true, perfEmpty: false,
+        perfPa: String(Math.round(pa)), perfDa: String(Math.round(da)),
+        perfSpeeds: p.label + ' — lift-off ' + spd.liftoff + ' · at 50 ft ' + spd.at50ft + ' · landing ' + p.landingSpeedKIAS + ' KIAS',
+        perfToText: toL.text, perfToStyle: toL.style, perfLdText: ldL.text, perfLdStyle: ldL.style,
+      };
+    }
+    // winds
+    const wdir = num(s.inp.wdir), wspd = num(s.inp.wspd), wgst = num(s.inp.wgst);
+    const demo = ac ? T.demoXwind : null;
+    const comp = (d, sp, h) => { const b = (d - h) * Math.PI / 180; return { head: sp * Math.cos(b), cross: sp * Math.sin(b) }; };
+    let best = null;
+    const rwyRows = RUNWAYS.map(r => {
+      const c = comp(wdir, wspd, r.hdg);
+      const g = wgst > wspd ? comp(wdir, wgst, r.hdg) : null;
+      if (!best || c.head > best.head) best = { name: r.name, head: c.head, cross: c.cross };
+      if (wspd === 0) return { name: r.name, hw: 'calm', hwStyle: {}, xw: 'calm', xwStyle: {} };
+      const hwTxt = c.head >= -0.5 ? Math.abs(c.head).toFixed(0) + ' kt' : Math.abs(c.head).toFixed(0) + ' kt TAIL';
+      const xwAbs = Math.abs(c.cross), gAbs = g ? Math.abs(g.cross) : null;
+      const xwTxt = xwAbs.toFixed(0) + (gAbs !== null ? 'G' + gAbs.toFixed(0) : '') + ' kt ' + (c.cross >= 0 ? 'R' : 'L');
+      const exceed = demo !== null && Math.max(xwAbs, gAbs || 0) > demo;
+      return { name: r.name, hw: hwTxt, hwStyle: c.head < -0.5 ? { color: '#F08080' } : {}, xw: xwTxt, xwStyle: exceed ? { color: '#E8C468' } : {} };
+    });
+    const rwyNote = wspd === 0
+      ? 'Wind calm — any runway works. Confirm with tower.'
+      : 'Best headwind: ' + best.name + ' · crosswind ' + Math.abs(best.cross).toFixed(0) + ' kt' + (demo !== null && ac ? ' · demonstrated crosswind ' + T.label + ': ' + demo + ' kt' : '');
+    let wcaText = '';
+    const tas = num(s.inp.tas);
+    if (s.inp.crs === '') wcaText = 'Enter a course above to compute wind correction for a leg.';
+    else if (!tas) wcaText = 'Enter TAS to compute wind correction.';
+    else if (wspd === 0) wcaText = 'Wind calm — WCA 0°, heading ' + num(s.inp.crs).toFixed(0) + '°M, GS ' + tas.toFixed(0) + ' kt.';
+    else {
+      const crs = num(s.inp.crs);
+      const beta = (wdir - crs) * Math.PI / 180;
+      const sinWca = wspd * Math.sin(beta) / tas;
+      if (Math.abs(sinWca) >= 1) wcaText = 'Wind exceeds TAS — no crab angle can hold this course.';
+      else {
+        const wca = Math.asin(sinWca);
+        const gs = tas * Math.cos(wca) - wspd * Math.cos(beta);
+        const wcaDeg = wca * 180 / Math.PI;
+        const hdgOut = ((crs + wcaDeg) % 360 + 360) % 360;
+        wcaText = 'WCA ' + (wcaDeg >= 0 ? '+' : '−') + Math.abs(wcaDeg).toFixed(0) + '° (crab ' + (wcaDeg >= 0 ? 'right' : 'left') + ') · Heading ' + hdgOut.toFixed(0) + '°M · GS ' + Math.max(0, gs).toFixed(0) + ' kt';
+      }
+    }
+    const wxDotStyle = { width: '9px', height: '9px', display: 'inline-block', flexShrink: 0, background: s.wx.cls === 'live' ? '#5BCB96' : (s.wx.cls === 'err' ? '#F08080' : '#6B7A94') };
+    const st = s.tail ? s.acStatus : { cls: 'off', text: 'PICK A TAIL TO SEE LIVE STATUS' };
+    const stColor = { air: '#6E9BE8', gnd: '#5BCB96', err: '#F08080' }[st.cls] || '#9FB2D1';
+    const heroStatusDot = st.cls === 'off'
+      ? { width: '9px', height: '9px', flexShrink: 0, border: '1px dashed #6B7A94', boxSizing: 'border-box' }
+      : { width: '9px', height: '9px', flexShrink: 0, background: { air: '#6E9BE8', gnd: '#5BCB96', err: '#F08080' }[st.cls] || '#6B7A94' };
+    return {
+      tabs,
+      tabWb: s.tab === 'wb', tabWind: s.tab === 'wind', tabPerf: s.tab === 'perf',
+      mapPaneStyle: { display: s.tab === 'map' ? 'block' : 'none' },
+      mapVisited: s.mapVisited, globeUrl: this.globeUrl, fullMapUrl: this.fullMapUrl,
+      goMapTab: () => this.setState({ tab: 'map', mapVisited: true }),
+      heroStatusDot,
+      heroStatusTextStyle: { font: "600 11px 'IBM Plex Mono',monospace", letterSpacing: '0.06em', color: stColor },
+      heroStatusText: st.text,
+      ...hero, ...vals, ...perf,
+      chips,
+      openPicker: () => this.setState({ pickerOpen: true }),
+      closePicker: () => this.setState({ pickerOpen: false }),
+      pickerOpen: s.pickerOpen, pickerTabs, pickerRows, stopProp: this.stopProp,
+      set: this.set, inp: s.inp,
+      lblFront: T.frontLabel, lblRow2: T.row2Label + ' (lb)', helpRow2: T.row2Helper,
+      lblRow3: T.row3Label + ' (lb)', helpRow3: T.row3Helper,
+      row2Label: T.row2Label, row3Label: T.row3Label,
+      fuelNote: T.fuelNote, hasFuelNote: !!T.fuelNote, fobMax: T.usableGal,
+      fobLb: wFob.toFixed(1),
+      burnConv: s.inp.burnUnit === 'gal' ? wBurn.toFixed(1) : galBurn.toFixed(1),
+      burnConvUnit: s.inp.burnUnit === 'gal' ? 'lb' : 'gal',
+      onBurnLb: () => this.setState(st => ({ inp: { ...st.inp, burnUnit: 'lb' } })),
+      onBurnGal: () => this.setState(st => ({ inp: { ...st.inp, burnUnit: 'gal' } })),
+      burnLbStyle: { ...fbtn(s.inp.burnUnit === 'lb'), borderRight: 'none' },
+      burnGalStyle: fbtn(s.inp.burnUnit === 'gal'),
+      aFront: fmt(T.arms.front, 2), aRow2: fmt(T.arms.row2, 2), aRow3: fmt(T.arms.row3, 2), aFuel: fmt(fuelArmDisp, 2),
+      usefulRemaining: remaining === null ? '—' : remaining.toFixed(1) + ' lb',
+      cgOpen: s.cgOpen,
+      toggleCg: () => this.setState(st => ({ cgOpen: !st.cgOpen })),
+      cgToggleLabel: s.cgOpen ? '− hide' : '+ show',
+      cgPlot,
+      cgCaption: T.hasUtility ? 'Solid — normal category · dashed — utility category · T take-off · L landing' : 'Entire envelope is utility category · T take-off · L landing',
+      fleetOpen: s.fleetOpen,
+      toggleFleet: () => this.setState(st => ({ fleetOpen: !st.fleetOpen })),
+      fleetToggleLabel: s.fleetOpen ? '− hide' : '+ show',
+      fleetFilters, fleetRows,
+      wxDotStyle, wxText: s.wx.text, wxMetar: s.wx.metar,
+      onWxRefresh: () => this.fetchWx(),
+      rwyRows, rwyNote, wcaText,
+    };
+  }
+  buildPlot(ac, T, cgTo, toW, cgLand, landW) {
+    const e = React.createElement;
+    const padX = 70, padY = 44, W = 1000, H = 700;
+    const xMin = T.plot.xMin, xMax = T.plot.xMax;
+    const yMin = T.plot.yMin, yMax = ac.maxGross + 100;
+    const mapX = x => padX + ((x - xMin) / (xMax - xMin)) * (W - 2 * padX);
+    const mapY = y => (H - padY) - ((y - yMin) / (yMax - yMin)) * (H - 2 * padY);
+    const normalPoly = getEnvelopePoly(ac.model, 'normal', ac.maxGross);
+    const utilityPoly = T.hasUtility ? getEnvelopePoly(ac.model, 'utility', ac.maxGross) : null;
+    const kids = [];
+    for (let x = xMin; x <= xMax; x += 1) {
+      const mx = mapX(x);
+      kids.push(e('line', { key: 'gx' + x, x1: mx, y1: padY, x2: mx, y2: H - padY, stroke: '#1B2941', strokeWidth: 1 }));
+      kids.push(e('text', { key: 'tx' + x, x: mx, y: H - padY + 24, textAnchor: 'middle', fontSize: 17, fill: '#6B7A94' }, String(x)));
+    }
+    for (let y = yMin; y <= yMax; y += 100) {
+      const my = mapY(y);
+      kids.push(e('line', { key: 'gy' + y, x1: padX, y1: my, x2: W - padX, y2: my, stroke: '#1B2941', strokeWidth: 1 }));
+      kids.push(e('text', { key: 'ty' + y, x: padX - 8, y: my + 5, textAnchor: 'end', fontSize: 16, fill: '#6B7A94' }, String(y)));
+    }
+    kids.push(e('text', { key: 'xl', x: W / 2, y: H - 4, textAnchor: 'middle', fontSize: 18, fill: '#6B7A94' }, 'Loaded CG (in aft of datum)'));
+    kids.push(e('text', { key: 'yl', x: 16, y: H / 2, transform: 'rotate(-90 16 ' + H / 2 + ')', textAnchor: 'middle', fontSize: 18, fill: '#6B7A94' }, 'Loaded Weight (lb)'));
+    const polyStr = pts => pts.map(p => mapX(p[0]) + ',' + mapY(p[1])).join(' ');
+    kids.push(e('polygon', { key: 'np', points: polyStr(normalPoly), fill: '#4A7DD6', fillOpacity: 0.08, stroke: '#4A7DD6', strokeWidth: 2.5 }));
+    if (utilityPoly) kids.push(e('polygon', { key: 'up', points: polyStr(utilityPoly), fill: 'none', stroke: '#6B7A94', strokeWidth: 2.5, strokeDasharray: '7,5' }));
+    const toIn = pointInPoly([cgTo, toW], normalPoly) && toW <= ac.maxGross;
+    const landIn = pointInPoly([cgLand, landW], normalPoly) && landW <= ac.maxGross;
+    const cTo = toIn ? '#4A7DD6' : '#F08080', cLand = landIn ? '#4A7DD6' : '#F08080';
+    kids.push(e('line', { key: 'tl', x1: mapX(cgTo), y1: mapY(toW), x2: mapX(cgLand), y2: mapY(landW), stroke: '#6B7A94', strokeWidth: 2.5 }));
+    kids.push(e('circle', { key: 'ct', cx: mapX(cgTo), cy: mapY(toW), r: 8, fill: cTo }));
+    kids.push(e('circle', { key: 'cl', cx: mapX(cgLand), cy: mapY(landW), r: 8, fill: cLand }));
+    kids.push(e('circle', { key: 'cl2', cx: mapX(cgLand), cy: mapY(landW), r: 4.5, fill: '#0C1526' }));
+    kids.push(e('text', { key: 'lt', x: mapX(cgTo) + 13, y: mapY(toW) + 6, fontSize: 18, fontWeight: 'bold', fill: cTo }, 'T'));
+    kids.push(e('text', { key: 'll', x: mapX(cgLand) + 13, y: mapY(landW) + 6, fontSize: 18, fontWeight: 'bold', fill: cLand }, 'L'));
+    return e('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'xMidYMid meet', width: '100%', height: '100%', style: { display: 'block', fontFamily: "'IBM Plex Mono',monospace" } }, kids);
+  }
+}
+</script>
+</body>
+</html>

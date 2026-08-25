@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#080D16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -47,18 +47,11 @@ a:hover { color: var(--ink); }
 .brand { font: 400 26px/1 var(--serif); letter-spacing: -0.005em; white-space: nowrap; }
 .brand em { font-style: italic; }
 .brand-sub { font: 500 10px var(--mono); color: var(--slate); letter-spacing: 0.14em; white-space: nowrap; }
-.jumpnav {
-  display: flex; gap: 0; overflow-x: auto; border-top: 1px solid var(--powder);
-  max-width: 1500px; margin: 0 auto; width: 100%; scrollbar-width: none;
-}
-.jumpnav::-webkit-scrollbar { display: none; }
-.jumpnav a {
-  font: 600 10.5px var(--sans); letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--slate); text-decoration: none; padding: 11px 16px; white-space: nowrap;
-  border-right: 1px solid var(--powder);
-}
-.jumpnav a:hover { color: var(--ink); background: var(--surface); }
-@media (min-width: 1100px) { .jumpnav { display: none; } }
+/* ---------- mobile tab bar (floating pill) ---------- */
+/* Below 1100px the page becomes one screen at a time, driven by this pill; the
+   desktop layout above that width keeps every section on the page at once. */
+.tab-hidden { display: none !important; }
+.tabbar { display: none; }
 
 .container { max-width: 1500px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
@@ -251,6 +244,123 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 .fbtn.active { background: var(--surface2); color: var(--ink); }
 .filter-count { font: 500 10px var(--mono); color: var(--slate); }
 .statusbar button.active { background: var(--surface2); color: var(--ink); border-color: var(--accent); }
+.globe-link { margin-left: auto; color: var(--slate); }
+
+/* ---------- flight conditions (day/night + burn rate) ---------- */
+/* The GPH unit sits inside the field so the rate itself is never clipped. */
+.cond-row { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 8px; }
+.cond-row select { min-width: 0; }
+.cond-rate {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  border: 1px solid var(--powder); background: var(--paper); padding-right: 10px;
+}
+.cond-rate:focus-within { border-color: var(--accent); }
+.cond-rate input { border: 0; padding-right: 2px; min-width: 0; }
+.cond-unit { font: 600 10.5px var(--mono); color: var(--slate); letter-spacing: 0.06em; flex-shrink: 0; }
+
+/* ---------- auto-fill buttons ---------- */
+.statusbar button.primary { border-color: var(--accent); color: var(--ink); background: var(--surface2); }
+.statusbar button:disabled { opacity: 0.45; cursor: not-allowed; background: transparent; border-color: var(--powder); color: var(--slate); }
+@keyframes fillflash {
+  0% { border-color: var(--accent); background: var(--surface2); }
+  100% { border-color: var(--powder); background: var(--paper); }
+}
+.fill-flash { animation: fillflash 600ms ease-out; }
+@media (prefers-reduced-motion) { .fill-flash { animation: none; } }
+
+/* ---------- fleet rows ---------- */
+/* Rows are inert on purpose: switching the W&B profile is an explicit Load W&B tap,
+   never a side effect of tapping a tail to see whether it is flying. */
+.fleet-row { cursor: default; }
+.fleet-row:hover { border-color: var(--powder); }
+.loadbtn {
+  background: transparent; color: var(--sub); border: 1px solid var(--powder); border-radius: 0;
+  padding: 7px 11px; font: 600 9.5px var(--sans); letter-spacing: 0.07em;
+  text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.loadbtn:hover { border-color: var(--accent); color: var(--ink); }
+.loaded-badge {
+  padding: 3px 9px; font: 600 9.5px var(--mono); letter-spacing: 0.05em; text-transform: uppercase;
+  background: var(--surface2); color: var(--sub); white-space: nowrap; flex-shrink: 0;
+}
+
+/* ---------- aircraft sheet (mobile) ---------- */
+.hero-change {
+  display: none; margin-left: auto; background: var(--surface2); color: var(--ink);
+  border: 1px solid var(--accent); border-radius: 0; padding: 0 18px; min-height: 44px;
+  font: 600 11.5px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.sheet-head { display: none; }
+.sheet-title { font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: 0.16em; color: var(--slate); }
+.sheet-backdrop { display: none; }
+
+@media (max-width: 1099px) {
+  .tabbar {
+    display: block; position: fixed; left: 0; right: 0; z-index: 1300;
+    bottom: calc(10px + env(safe-area-inset-bottom)); pointer-events: none;
+  }
+  .tabbar-inner {
+    pointer-events: auto; margin: 0 auto; width: max-content; max-width: calc(100% - 20px);
+    display: flex; gap: 2px; padding: 5px; overflow-x: auto; scrollbar-width: none;
+    background: rgba(12, 21, 38, 0.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    border: 1px solid var(--powder); border-radius: 999px; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
+  }
+  .tabbar-inner::-webkit-scrollbar { display: none; }
+  .tabbtn {
+    appearance: none; border: none; background: transparent; color: var(--slate);
+    font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0 16px; min-height: 42px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  }
+  .tabbtn.active { background: var(--surface2); color: var(--ink); box-shadow: inset 0 0 0 1px var(--accent); }
+  body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+
+  .container {
+    padding: 14px max(12px, env(safe-area-inset-right)) 14px max(12px, env(safe-area-inset-left));
+    gap: 14px;
+  }
+  /* Keep the observation line beside its dot and give the buttons real tap targets. */
+  #wx-text, #perf-wx-text { flex: 1 1 60%; min-width: 0; }
+  .statusbar button { flex: 1 1 auto; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .card { padding: 16px 14px; }
+  .form-group input, .form-group select { font-size: 16px; padding: 12px 11px; }
+  .tab { min-height: 44px; }
+  #map-crop { height: 56vh; min-height: 320px; }
+  .fleet-scroll { max-height: none; overflow-y: visible; }
+
+  /* Tail + type stack on the left, Change sits beside them — never on its own row. */
+  .hero-id { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; }
+  #hero-tail { grid-column: 1; grid-row: 1; }
+  #hero-meta { grid-column: 1; grid-row: 2; }
+  .hero-change { display: inline-flex; align-items: center; grid-column: 2; grid-row: 1 / span 2; margin-left: 0; }
+  .brand-sub { display: none; }
+  .globe-link {
+    margin-left: 0; width: 100%; min-height: 46px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--accent); background: var(--surface2); color: var(--ink); text-decoration: none;
+    font: 600 11px var(--sans); letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .hero-select {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1500;
+    max-width: 560px; margin: 0 auto;
+    background: var(--surface); border-top: 2px solid var(--accent); border-bottom: none;
+    max-height: 80vh; overflow-y: auto;
+    padding: 16px 14px calc(22px + env(safe-area-inset-bottom));
+    transform: translateY(101%); visibility: hidden;
+    transition: transform 0.18s ease, visibility 0.18s ease;
+  }
+  body.picker-open .hero-select { transform: none; visibility: visible; }
+  body.picker-open { overflow: hidden; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .sheet-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 1400; background: rgba(4, 7, 12, 0.78);
+    opacity: 0; visibility: hidden; transition: opacity 0.18s ease, visibility 0.18s ease;
+  }
+  body.picker-open .sheet-backdrop { opacity: 1; visibility: visible; }
+  .aircraft-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pill { min-height: 46px; justify-content: space-between; padding: 10px 12px; }
+}
+@media (prefers-reduced-motion) {
+  .hero-select, .sheet-backdrop { transition: none; }
+}
 </style>
 </head>
 <body>
@@ -260,18 +370,16 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
     <div class="brand"><em>Wayman</em> Fleet</div>
     <div class="brand-sub">KHWO · W&amp;B · PERFORMANCE · LIVE MAP</div>
   </div>
-  <nav class="jumpnav">
-    <a href="#sec-wb">W&amp;B Table</a>
-    <a href="#sec-perf">Performance</a>
-    <a href="#sec-wind">Winds</a>
-    <a href="#sec-map">Map</a>
-  </nav>
 </div>
 
 <main class="container">
 
-  <section class="hero" data-screen-label="Aircraft select">
-    <div class="hero-select">
+  <section class="hero" data-tab="wb perf" data-screen-label="Aircraft select">
+    <div class="hero-select" id="hero-select" role="group" aria-label="Select aircraft">
+      <div class="sheet-head">
+        <span class="sheet-title">Select aircraft</span>
+        <button type="button" class="focusbtn" id="btn-picker-close">Close</button>
+      </div>
       <div class="type-tabs" id="type-tabs"></div>
       <div class="aircraft-picker" id="aircraft-picker">
         <div class="chip warn">If no tail numbers appear here, this viewer isn't running JavaScript — open the file in Safari or Chrome instead.</div>
@@ -280,6 +388,7 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
     <div class="hero-id">
       <div id="hero-tail">—</div>
       <div id="hero-meta">PICK A TAIL NUMBER TO BEGIN</div>
+      <button type="button" class="hero-change" id="btn-picker">Change</button>
     </div>
     <div class="kpi-grid">
       <div class="kpi">
@@ -301,18 +410,18 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   </section>
 
   <div class="layout">
-    <section class="map-pane" id="sec-map" data-screen-label="Live map + fleet">
+    <section class="map-pane" id="sec-map" data-tab="map" data-screen-label="Live map + fleet">
       <div class="card">
         <div class="statusbar">
           <span class="dot live"></span>
           <span>Live map — Wayman aircraft only</span>
           <span style="opacity:0.65;">map © OpenStreetMap © CARTO · via adsb.lol</span>
-          <a id="lnk-globe" href="#" target="_blank" rel="noopener" style="margin-left:auto; color: var(--slate);">Open full map ↗</a>
+          <a id="lnk-globe" class="globe-link" href="#" target="_blank" rel="noopener">Open full map ↗</a>
         </div>
       </div>
       <div id="map-crop"><iframe id="map" title="Live Wayman fleet map"></iframe></div>
       <div class="card" id="sec-fleet">
-        <div class="eyebrow">Fleet — tap a tail to load it in the calculator</div>
+        <div class="eyebrow" id="fleet-eyebrow">Fleet</div>
         <div class="filter-rows">
           <div class="filterset" id="filter-type">
             <button class="fbtn active" data-v="all">All</button>
@@ -327,13 +436,15 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         </div>
         <div class="helper" style="margin-top: 10px;">
           If a tail isn't on the map, it isn't transmitting — a parked aircraft with the master off
-          shows nothing, so no plane symbol usually means it's on the ramp at KHWO.
+          shows nothing, so no plane symbol usually means it's on the ramp at KHWO.<br>
+          Browsing this list never touches your weight &amp; balance — the calculator only changes
+          when you tap <strong>Load W&amp;B</strong> on a row.
         </div>
       </div>
     </section>
 
     <section class="calc-pane" id="sec-calc" data-screen-label="Calculator">
-      <div class="card">
+      <div class="card" data-tab="wb">
         <div class="eyebrow">Payload &amp; Fuel</div>
         <div class="input-grid">
           <div class="form-group">
@@ -370,16 +481,18 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
           </div>
           <div class="form-group">
             <label>Flight Conditions</label>
-            <div style="display:flex; gap:8px;">
-              <select id="inp-daynight" style="flex: 1;">
+            <div class="cond-row">
+              <select id="inp-daynight" aria-label="Day or night">
                 <option value="day">Day</option>
                 <option value="night">Night</option>
               </select>
-              <div style="display:flex; align-items:center; gap:4px; flex: 1;">
-                <input type="number" id="inp-burnrate" value="8.0" step="0.1" title="Burn rate (GPH)" style="width:100%;">
-                <span style="font-size:11.5px; color:var(--slate);">GPH</span>
+              <div class="cond-rate">
+                <input type="number" id="inp-burnrate" value="8.0" step="0.1" inputmode="decimal"
+                       title="Burn rate (GPH)" aria-label="Burn rate in gallons per hour">
+                <span class="cond-unit">GPH</span>
               </div>
             </div>
+            <div class="helper">Sets the fuel-reserve check — 30 min day, 60 min night.</div>
           </div>
         </div>
         <div class="useful-strip">
@@ -388,14 +501,14 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" data-tab="wb">
         <div class="eyebrow">Status</div>
         <div class="status-strip" id="status-strip">
           <div class="chip info">Pick a tail number to begin.</div>
         </div>
       </div>
 
-      <div class="card" id="sec-wb" data-screen-label="W&amp;B table">
+      <div class="card" id="sec-wb" data-tab="wb" data-screen-label="W&amp;B table">
         <div class="eyebrow">Weight &amp; Balance</div>
         <div class="wb-table-wrapper">
           <table class="wb-table">
@@ -474,15 +587,20 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" data-tab="wb">
         <div class="eyebrow">CG Envelope</div>
         <div class="svg-container">
           <svg id="cg-plot" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" width="100%" height="100%"></svg>
         </div>
       </div>
 
-      <div class="card" id="sec-perf" data-screen-label="Performance">
+      <div class="card" id="sec-perf" data-tab="perf" data-screen-label="Performance">
         <div class="eyebrow">Performance</div>
+        <div class="statusbar" style="margin-bottom: 12px;">
+          <span class="dot" id="perf-wx-dot"></span>
+          <span id="perf-wx-text">Fetching KHWO observation…</span>
+          <button type="button" id="btn-perf-fill" class="primary" disabled>Auto-fill</button>
+        </div>
         <div class="input-grid">
           <div class="form-group">
             <label>Field Elevation (ft)</label>
@@ -501,16 +619,19 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
           <span style="color:var(--slate)">Enter FE, ALT, and OAT to compute performance.</span>
         </div>
         <div class="helper" style="margin-top: 12px; border-top: 1px solid var(--powder); padding-top: 12px;">
-          Short field · at max gross · conservative — from the school performance card.
+          Short field · at max gross · conservative — from the school performance card.<br>
+          Auto-fill takes the altimeter and temperature straight from the KHWO METAR and uses
+          KHWO's 8 ft field elevation — change the elevation if you're departing anywhere else.
         </div>
       </div>
 
-      <div class="card" id="sec-wind" data-screen-label="Winds">
+      <div class="card" id="sec-wind" data-tab="wind" data-screen-label="Winds">
         <div class="eyebrow">Winds — KHWO</div>
         <div class="statusbar" style="margin-bottom: 8px;">
           <span class="dot" id="wx-dot"></span>
           <span id="wx-text">Fetching KHWO wind…</span>
-          <button id="btn-wx">Refresh</button>
+          <button type="button" id="btn-wx-fill" class="primary" disabled>Auto-fill</button>
+          <button type="button" id="btn-wx">Refresh</button>
         </div>
         <div class="helper num" id="wx-metar" style="margin: 0 0 14px; font-size: 12px; color: var(--sub); letter-spacing: 0.02em;">—</div>
         <div class="input-grid">
@@ -563,6 +684,17 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
     Live positions via adsb.lol (may lag or drop out) — planning aid only, never use for traffic separation.
   </footer>
 </main>
+
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+
+<nav class="tabbar" aria-label="Section navigation">
+  <div class="tabbar-inner">
+    <button type="button" class="tabbtn active" data-tab-btn="wb">W&amp;B</button>
+    <button type="button" class="tabbtn" data-tab-btn="perf">Perf</button>
+    <button type="button" class="tabbtn" data-tab-btn="wind">Winds</button>
+    <button type="button" class="tabbtn" data-tab-btn="map">Map</button>
+  </div>
+</nav>
 
 <script>
 // Wayman Fleet app logic — extracted verbatim from original, restyled hooks only.
@@ -799,6 +931,7 @@ function renderTabs() {
       renderTabs();
       renderPicker();
       calculate();
+      renderFleetList();
     };
     container.appendChild(btn);
   });
@@ -817,6 +950,8 @@ function renderPicker() {
       saveTail(a.tail);
       renderPicker();
       calculate();
+      renderFleetList();
+      closePicker();
     };
     container.appendChild(btn);
   });
@@ -1297,7 +1432,13 @@ const RUNWAYS = [
   { name: 'RWY 19 (L/R)', hdg: 190 },
 ];
 const WX_URL = 'https://api.weather.gov/stations/KHWO/observations/latest';
+// North Perry field elevation (FAA chart supplement). Only a default for the
+// performance auto-fill — it is an ordinary input the moment you change it.
+const KHWO_FIELD_ELEV_FT = 8;
 let wxTime = null;
+// Last successful KHWO observation, kept so Auto-fill can copy from it on demand.
+// Nothing here is written into an input unless you ask for it.
+let wxObs = null;
 
 // Rebuild a METAR-format line from NWS parsed fields (AWC's raw-text API
 // does not permit cross-origin browser requests, so raw text is unavailable).
@@ -1335,32 +1476,93 @@ function buildMetar(p) {
   return parts.join(' ');
 }
 
+function ago(ms) {
+  const min = Math.max(0, Math.round(ms / 60000));
+  if (min < 1) return 'just now';
+  if (min === 1) return '1 min ago';
+  if (min < 60) return min + ' min ago';
+  const hr = Math.floor(min / 60);
+  const rem = min % 60;
+  return hr + ' hr' + (rem ? ' ' + rem + ' min' : '') + ' ago';
+}
+
+// Both auto-fill rows (winds and performance) read the same observation.
+function renderWxStatus(state, msg) {
+  const rows = [
+    { dot: 'wx-dot', txt: 'wx-text', btn: 'btn-wx-fill' },
+    { dot: 'perf-wx-dot', txt: 'perf-wx-text', btn: 'btn-perf-fill' },
+  ];
+  rows.forEach(r => {
+    const dot = document.getElementById(r.dot);
+    const txt = document.getElementById(r.txt);
+    const btn = document.getElementById(r.btn);
+    if (dot) dot.className = 'dot' + (state === 'live' ? ' live' : state === 'err' ? ' err' : '');
+    if (txt) txt.innerText = msg;
+    if (btn) btn.disabled = !wxObs;
+  });
+}
+
+function fillFlash(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('fill-flash');
+    void el.offsetWidth;
+    el.classList.add('fill-flash');
+    setTimeout(() => el.classList.remove('fill-flash'), 700);
+  });
+}
+
 async function fetchWx() {
-  const dot = document.getElementById('wx-dot');
-  const txt = document.getElementById('wx-text');
   try {
     const res = await fetch(WX_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const p = (await res.json()).properties || {};
+    const num = f => (p[f] && typeof p[f].value === 'number') ? p[f].value : null;
+    const spdKmh = num('windSpeed');
+    const gstKmh = num('windGust');
+    const dirTrue = num('windDirection');
+    const pa = num('barometricPressure');
+    const tC = num('temperature');
+    wxObs = {
+      dirTrue: dirTrue === null ? null : Math.round(dirTrue),
+      spdKt: spdKmh === null ? null : Math.round(spdKmh * 0.539957),
+      gstKt: gstKmh === null ? null : Math.round(gstKmh * 0.539957),
+      oatC: tC === null ? null : Math.round(tC),
+      altimInHg: pa === null ? null : pa / 3386.389,
+      time: p.timestamp ? new Date(p.timestamp).getTime() : Date.now(),
+    };
+    wxTime = wxObs.time;
     document.getElementById('wx-metar').innerText = buildMetar(p) + ' — decoded from NWS, not the official raw text';
-    const dirTrue = p.windDirection ? p.windDirection.value : null;
-    const spdKmh = p.windSpeed ? p.windSpeed.value : null;
-    const gstKmh = p.windGust ? p.windGust.value : null;
-    if (typeof dirTrue === 'number') {
-      document.getElementById('inp-wdir').value = Math.round(dirTrue);
-    }
-    if (typeof spdKmh === 'number') {
-      document.getElementById('inp-wspd').value = Math.round(spdKmh * 0.539957);
-    }
-    document.getElementById('inp-wgst').value = typeof gstKmh === 'number' ? Math.round(gstKmh * 0.539957) : '';
-    wxTime = p.timestamp ? new Date(p.timestamp).getTime() : Date.now();
-    dot.className = 'dot live';
-    txt.innerText = 'KHWO wind observed ' + ago(Date.now() - wxTime);
-    updateWindCard();
+    renderWxStatus('live', 'KHWO observed ' + ago(Date.now() - wxTime) + ' — tap Auto-fill to use it');
   } catch (e) {
-    dot.className = 'dot err';
-    txt.innerText = 'Weather source unreachable — enter wind manually';
+    wxObs = null;
+    document.getElementById('wx-metar').innerText = '—';
+    renderWxStatus('err', 'Weather source unreachable — enter values manually');
   }
+}
+
+// Copies the observation into the wind inputs exactly as reported (true north,
+// knots) — the same numbers shown in the METAR line above, no conversions.
+function autofillWinds() {
+  if (!wxObs) return;
+  const calm = wxObs.spdKt === 0;
+  const set = (id, v) => { document.getElementById(id).value = (v === null || v === undefined) ? '' : v; };
+  set('inp-wdir', calm ? '' : wxObs.dirTrue);
+  set('inp-wspd', wxObs.spdKt);
+  set('inp-wgst', (wxObs.gstKt !== null && wxObs.spdKt !== null && wxObs.gstKt > wxObs.spdKt) ? wxObs.gstKt : '');
+  updateWindCard();
+  fillFlash(['inp-wdir', 'inp-wspd', 'inp-wgst']);
+}
+
+// Altimeter and OAT come from the same observation; field elevation is KHWO's.
+function autofillPerf() {
+  if (!wxObs) return;
+  document.getElementById('inp-fe').value = KHWO_FIELD_ELEV_FT;
+  if (wxObs.altimInHg !== null) document.getElementById('inp-alt').value = wxObs.altimInHg.toFixed(2);
+  if (wxObs.oatC !== null) document.getElementById('inp-oat').value = wxObs.oatC;
+  calculate();
+  fillFlash(['inp-fe', 'inp-alt', 'inp-oat']);
 }
 
 function windComponents(windDir, windSpd, hdg) {
@@ -1377,6 +1579,17 @@ function updateWindCard() {
   const wgst = getVal('inp-wgst');
   const ac = AIRCRAFT.find(a => a.tail === currentTail);
   const demo = ac ? typeOf(ac).demoXwind : null;
+
+  // Nothing entered yet is not the same as calm — say so rather than implying 0 kt.
+  if (document.getElementById('inp-wdir').value === '' && document.getElementById('inp-wspd').value === '') {
+    body.innerHTML = RUNWAYS.map(r =>
+      `<tr><td>${r.name}</td><td class="num">—</td><td class="num">—</td></tr>`).join('');
+    document.getElementById('rwy-note').innerText =
+      'No wind entered — tap Auto-fill to copy the latest KHWO observation, or type it in above.';
+    document.getElementById('wca-output').innerText =
+      'Enter wind and a course to compute wind correction for a leg.';
+    return;
+  }
 
   let best = null;
   const rows = RUNWAYS.map(r => {
@@ -1462,6 +1675,9 @@ function initCalcApp() {
     document.getElementById(id).addEventListener('input', updateWindCard);
   });
   document.getElementById('btn-wx').onclick = fetchWx;
+  document.getElementById('btn-wx-fill').onclick = autofillWinds;
+  document.getElementById('btn-perf-fill').onclick = autofillPerf;
+  renderWxStatus('', 'Fetching KHWO observation…');
   fetchWx();
   setInterval(fetchWx, 5 * 60000);
 
@@ -1483,6 +1699,7 @@ function modelLabel(a) {
   return a.model === '152' ? 'C-152' : 'C-172 ' + a.model;
 }
 
+// Only ever called from the explicit "Load W&B" button on a fleet row.
 function selectAircraft(a) {
   currentTail = a.tail;
   saveTail(a.tail);
@@ -1491,21 +1708,31 @@ function selectAircraft(a) {
   renderPicker();
   calculate();
   renderFleetList();
+  goTab('wb');
 }
 
 function renderFleetList() {
+  const eyebrow = document.getElementById('fleet-eyebrow');
+  if (eyebrow) eyebrow.innerText = 'Fleet — ' + FLEET.length + ' aircraft';
   ['172', '152'].forEach(type => {
     const el = document.getElementById('list-' + type);
     el.innerHTML = '';
     if (fltType !== 'all' && type !== fltType) return;
     FLEET.filter(a => typeKeyOf(a) === type).forEach(a => {
+      const loaded = a.tail === currentTail;
       const row = document.createElement('div');
-      row.className = 'fleet-row' + (a.tail === currentTail ? ' selected' : '');
+      row.className = 'fleet-row' + (loaded ? ' selected' : '');
       row.dataset.tail = a.tail;
+      // The row itself does nothing: tapping a tail to check whether it is flying
+      // must never rewrite the weight & balance you are in the middle of.
       row.innerHTML =
         `<span class="tail">${a.tail}</span>` +
-        `<span class="detail">${modelLabel(a)}</span>`;
-      row.onclick = () => selectAircraft(a);
+        `<span class="detail">${modelLabel(a)}</span>` +
+        (loaded
+          ? `<span class="loaded-badge">In W&amp;B</span>`
+          : `<button type="button" class="loadbtn">Load W&amp;B</button>`);
+      const btn = row.querySelector('.loadbtn');
+      if (btn) btn.onclick = () => selectAircraft(a);
       el.appendChild(row);
     });
   });
@@ -1515,10 +1742,6 @@ function initFleetApp() {
   document.getElementById('map').src = GLOBE_URL + '&hideSidebar&hideButtons&altitudeChart=0';
   document.getElementById('lnk-globe').href = GLOBE_URL;
   renderFleetList();
-  setInterval(() => {
-    document.querySelectorAll('.fleet-row').forEach(r =>
-      r.classList.toggle('selected', r.dataset.tail === currentTail));
-  }, 1000);
   document.querySelectorAll('#filter-type .fbtn').forEach(b => {
     b.onclick = () => {
       fltType = b.dataset.v;
@@ -1529,8 +1752,51 @@ function initFleetApp() {
   });
 }
 
+// ---------- mobile shell: one section at a time + floating pill nav ----------
+const TABS = ['wb', 'perf', 'wind', 'map'];
+const mqMobile = window.matchMedia('(max-width: 1099px)');
+let activeTab = TABS.includes(loadSaved('wayman-tab')) ? loadSaved('wayman-tab') : 'wb';
+
+function applyTabs() {
+  const mobile = mqMobile.matches;
+  document.querySelectorAll('[data-tab]').forEach(el => {
+    const owns = el.getAttribute('data-tab').split(' ').indexOf(activeTab) !== -1;
+    el.classList.toggle('tab-hidden', mobile && !owns);
+  });
+  document.querySelectorAll('.tabbtn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tabBtn === activeTab));
+  if (!mobile) closePicker();
+}
+
+function goTab(tab) {
+  if (TABS.indexOf(tab) === -1) return;
+  activeTab = tab;
+  save('wayman-tab', tab);
+  applyTabs();
+  if (mqMobile.matches) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function openPicker() { document.body.classList.add('picker-open'); }
+function closePicker() { document.body.classList.remove('picker-open'); }
+
+function initShell() {
+  document.querySelectorAll('.tabbtn').forEach(b => {
+    b.onclick = () => goTab(b.dataset.tabBtn);
+  });
+  document.getElementById('btn-picker').onclick = openPicker;
+  document.getElementById('btn-picker-close').onclick = closePicker;
+  document.getElementById('sheet-backdrop').onclick = closePicker;
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePicker();
+  });
+  if (mqMobile.addEventListener) mqMobile.addEventListener('change', applyTabs);
+  else mqMobile.addListener(applyTabs);
+  applyTabs();
+}
+
 initCalcApp();
 initFleetApp();
+initShell();
 </script>
 </body>
 </html>
