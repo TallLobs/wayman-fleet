@@ -3,8 +3,9 @@
 One single-file web app for Wayman Aviation Academy students (KHWO / North Perry):
 
 **[index.html](index.html)** — on desktop, live fleet map on the left and the C-172 / C-152
-weight & balance + short-field performance calculator on the right (stacked on phones,
-calculator first).
+weight & balance + short-field performance calculator on the right. On phones and tablets
+(under 1100 px) the same page becomes one screen at a time — **W&B · Perf · Winds · Map** —
+switched from a floating pill at the bottom of the screen.
 
 - **Calculator**: all constants follow the school's paperwork conventions (fuel arms
   back-derived from the school-sheet full-fuel moments: 172 → 11500/240, 152 → 6200/147
@@ -13,13 +14,23 @@ calculator first).
   no more ambiguous "NM") refreshed from the school's Talon (ETA) W&B table on 2026-08-24;
   N67549 kept from older data (absent from that table). Non-Cessna school aircraft
   (Arrows, twins) are deliberately excluded.
+- **Mobile**: the aircraft picker is a bottom sheet behind the hero's **Change** button;
+  every control is at least a 44 px tap target and inputs are 16 px so iOS does not zoom
+  on focus. The layout was built from the mockup in [design/](design/).
+- **Auto-fill**: the KHWO METAR is fetched and displayed but never written into a field on
+  its own. **Auto-fill** on the winds card copies the wind exactly as reported (true north,
+  knots); **Auto-fill** on the performance card takes the altimeter and temperature from the
+  same observation and KHWO's 8 ft field elevation. Nothing you have typed is overwritten
+  unless you press one of those buttons.
 - **Live map**: embeds the [adsb.lol](https://adsb.lol) tar1090 globe in an
   iframe, filtered (`icaoFilter`) to the fleet's 23 ICAO hex codes — live positions with
   zero API calls of our own. Dark basemap (`baseMap=carto_dark_all`), altitude legend off
   (`altitudeChart=0`); the embed's bottom strip (attribution/wordmark/scale) is cropped by
   a wrapper div, with OSM/CARTO credit shown in our own statusbar instead. If a tail is on
   the map it's transmitting (flying or taxiing); if not, it's parked with the master off.
-  Tapping a fleet row selects that aircraft in the calculator.
+  Browsing the fleet list never touches the calculator: rows are inert, and each row
+  carries an explicit **Load W&B** button that is the only thing which switches the
+  calculator's aircraft.
 
 ## Deploy on GitHub Pages
 
@@ -45,7 +56,6 @@ No build step, no dependencies to install — Leaflet and map tiles load from CD
 ## Roadmap
 
 - Fuel-consumption / cross-country planning helpers (flight-plan prep with a Wayman aircraft)
-- KHWO METAR integration
 - URL deep-link to a tail (`?tail=N155SK`)
 
 ## Disclaimers
