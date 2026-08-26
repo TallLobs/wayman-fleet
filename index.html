@@ -140,7 +140,7 @@ tr:last-child td { border-bottom: none; }
   0% { background-color: var(--powder); color: var(--ink); }
   100% { background-color: transparent; }
 }
-@media (prefers-reduced-motion) { .pulse-highlight { animation: none; } }
+@media (prefers-reduced-motion) { .pulse-highlight { animation: none; } html { scroll-behavior: auto; } }
 
 /* ---------- chips ---------- */
 .status-strip { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -204,7 +204,6 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   border: 1px solid var(--powder); background: var(--paper); cursor: pointer; flex-wrap: wrap;
 }
 .fleet-row:hover { border-color: var(--slate); }
-.fleet-row.selected { border-color: var(--accent); background: var(--surface2); }
 .fleet-row .tail { font: 600 12.5px var(--mono); min-width: 70px; }
 .state {
   padding: 2px 8px; font: 600 9.5px var(--mono); letter-spacing: 0.05em;
@@ -246,6 +245,47 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 .statusbar button.active { background: var(--surface2); color: var(--ink); border-color: var(--accent); }
 .globe-link { margin-left: auto; color: var(--slate); }
 
+/* ---------- hero live status ---------- */
+.hero-status {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 20px;
+  background: transparent; border: none; border-top: 1px solid var(--powder);
+  cursor: pointer; text-align: left; font: 600 11px var(--mono); letter-spacing: 0.06em;
+}
+.hero-status .sdot { width: 9px; height: 9px; flex-shrink: 0; }
+.hero-status.air  { color: #6E9BE8; } .hero-status.air  .sdot { background: #6E9BE8; }
+.hero-status.gnd  { color: var(--ok); } .hero-status.gnd  .sdot { background: var(--ok); }
+.hero-status.off  { color: var(--slate); } .hero-status.off  .sdot { background: transparent; border: 1px dashed var(--slate); }
+.hero-status.err  { color: var(--warn); } .hero-status.err  .sdot { background: var(--warn); }
+.hero-status.checking { color: var(--slate); } .hero-status.checking .sdot { background: var(--slate); }
+.hero-status .maplink {
+  margin-left: auto; font: 600 10px var(--sans); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--slate); white-space: nowrap;
+}
+.hero-status:hover .maplink { color: var(--ink); }
+
+/* ---------- collapsible sections (fleet list, CG on mobile) ---------- */
+.collapse-toggle {
+  width: 100%; min-height: 48px; background: transparent; color: var(--sub);
+  border: 1px solid var(--powder); border-radius: 0; font: 600 11px var(--sans);
+  letter-spacing: 0.09em; text-transform: uppercase; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 14px;
+}
+.collapse-toggle:hover { border-color: var(--slate); color: var(--ink); }
+.collapse-toggle .tog { font-family: var(--mono); }
+.collapsed-body.closed { display: none; }
+#cg-toggle { display: none; }
+
+/* ---------- map legend ---------- */
+.map-legend { display: flex; flex-direction: column; gap: 8px; }
+.map-legend .row { display: flex; align-items: center; gap: 10px; font: 500 12px var(--mono); }
+.map-legend .row.on { color: var(--ink); }
+.map-legend .row.offl { color: var(--slate); }
+.map-legend .sq { width: 9px; height: 9px; flex-shrink: 0; }
+.map-legend .row.on .sq { background: var(--ok); }
+.map-legend .row.offl .sq { background: transparent; border: 1px dashed var(--slate); }
+
+.version-line { font: 500 10px var(--mono); color: var(--slate); letter-spacing: 0.08em; margin-top: 6px; }
+
 /* ---------- flight conditions (day/night + burn rate) ---------- */
 /* The GPH unit sits inside the field so the rate itself is never clipped. */
 .cond-row { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 8px; }
@@ -269,20 +309,9 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 @media (prefers-reduced-motion) { .fill-flash { animation: none; } }
 
 /* ---------- fleet rows ---------- */
-/* Rows are inert on purpose: switching the W&B profile is an explicit Load W&B tap,
-   never a side effect of tapping a tail to see whether it is flying. */
+/* Information only: rows are inert and have no connection to the W&B calculator. */
 .fleet-row { cursor: default; }
 .fleet-row:hover { border-color: var(--powder); }
-.loadbtn {
-  background: transparent; color: var(--sub); border: 1px solid var(--powder); border-radius: 0;
-  padding: 7px 11px; font: 600 9.5px var(--sans); letter-spacing: 0.07em;
-  text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0;
-}
-.loadbtn:hover { border-color: var(--accent); color: var(--ink); }
-.loaded-badge {
-  padding: 3px 9px; font: 600 9.5px var(--mono); letter-spacing: 0.05em; text-transform: uppercase;
-  background: var(--surface2); color: var(--sub); white-space: nowrap; flex-shrink: 0;
-}
 
 /* ---------- aircraft sheet (mobile) ---------- */
 .hero-change {
@@ -356,6 +385,8 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   }
   body.picker-open .sheet-backdrop { opacity: 1; visibility: visible; }
   .aircraft-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #cg-toggle { display: flex; }
+  #cg-body.closed-mobile { display: none; }
   .pill { min-height: 46px; justify-content: space-between; padding: 10px 12px; }
 }
 @media (prefers-reduced-motion) {
@@ -390,6 +421,11 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
       <div id="hero-meta">PICK A TAIL NUMBER TO BEGIN</div>
       <button type="button" class="hero-change" id="btn-picker">Change</button>
     </div>
+    <button type="button" class="hero-status off" id="hero-status" title="Open the live map">
+      <span class="sdot"></span>
+      <span id="hero-status-text">PICK A TAIL TO SEE LIVE STATUS</span>
+      <span class="maplink">Map ↗</span>
+    </button>
     <div class="kpi-grid">
       <div class="kpi">
         <div class="kpi-label">Take-Off Weight</div>
@@ -412,6 +448,12 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   <div class="layout">
     <section class="map-pane" id="sec-map" data-tab="map" data-screen-label="Live map + fleet">
       <div class="card">
+        <div class="map-legend">
+          <div class="row on"><span class="sq"></span><span>On the map — transmitting (flying or taxiing)</span></div>
+          <div class="row offl"><span class="sq"></span><span>Not on the map — parked at KHWO, master off</span></div>
+        </div>
+      </div>
+      <div class="card">
         <div class="statusbar">
           <span class="dot live"></span>
           <span>Live map — Wayman aircraft only</span>
@@ -421,24 +463,28 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
       </div>
       <div id="map-crop"><iframe id="map" title="Live Wayman fleet map"></iframe></div>
       <div class="card" id="sec-fleet">
-        <div class="eyebrow" id="fleet-eyebrow">Fleet</div>
-        <div class="filter-rows">
-          <div class="filterset" id="filter-type">
-            <button class="fbtn active" data-v="all">All</button>
-            <button class="fbtn" data-v="172">C-172</button>
-            <button class="fbtn" data-v="152">C-152</button>
+        <button type="button" class="collapse-toggle" id="fleet-toggle" aria-expanded="false" aria-controls="fleet-body">
+          <span id="fleet-toggle-label">Fleet list</span>
+          <span class="tog">SHOW ▾</span>
+        </button>
+        <div class="collapsed-body closed" id="fleet-body">
+          <div class="filter-rows" style="margin-top: 12px;">
+            <div class="filterset" id="filter-type">
+              <button class="fbtn active" data-v="all">All</button>
+              <button class="fbtn" data-v="172">C-172</button>
+              <button class="fbtn" data-v="152">C-152</button>
+            </div>
           </div>
-        </div>
-        <div class="fleet-scroll">
-          <div class="fleet-list" id="list-172"></div>
-          <div style="height: 10px;"></div>
-          <div class="fleet-list" id="list-152"></div>
-        </div>
-        <div class="helper" style="margin-top: 10px;">
-          If a tail isn't on the map, it isn't transmitting — a parked aircraft with the master off
-          shows nothing, so no plane symbol usually means it's on the ramp at KHWO.<br>
-          Browsing this list never touches your weight &amp; balance — the calculator only changes
-          when you tap <strong>Load W&amp;B</strong> on a row.
+          <div class="fleet-scroll">
+            <div class="fleet-list" id="list-172"></div>
+            <div style="height: 10px;"></div>
+            <div class="fleet-list" id="list-152"></div>
+          </div>
+          <div class="helper" style="margin-top: 10px;">
+            If a tail isn't on the map, it isn't transmitting — a parked aircraft with the master off
+            shows nothing, so no plane symbol usually means it's on the ramp at KHWO.
+            This list is information only — it never touches the W&amp;B calculator.
+          </div>
         </div>
       </div>
     </section>
@@ -589,8 +635,14 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
 
       <div class="card" data-tab="wb">
         <div class="eyebrow">CG Envelope</div>
-        <div class="svg-container">
-          <svg id="cg-plot" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" width="100%" height="100%"></svg>
+        <button type="button" class="collapse-toggle" id="cg-toggle" aria-expanded="false" aria-controls="cg-body">
+          <span>CG envelope plot</span>
+          <span class="tog">SHOW ▾</span>
+        </button>
+        <div id="cg-body" class="closed-mobile">
+          <div class="svg-container">
+            <svg id="cg-plot" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet" width="100%" height="100%"></svg>
+          </div>
         </div>
       </div>
 
@@ -682,6 +734,7 @@ footer { text-align: center; color: var(--slate); font-size: 11.5px; padding: 8p
   <footer>
     Training aid. Verify all figures against the aircraft's official weight &amp; balance records and POH before flight.<br>
     Live positions via adsb.lol (may lag or drop out) — planning aid only, never use for traffic separation.
+    <div class="version-line">v3 · 2026-08-26</div>
   </footer>
 </main>
 
@@ -931,7 +984,6 @@ function renderTabs() {
       renderTabs();
       renderPicker();
       calculate();
-      renderFleetList();
     };
     container.appendChild(btn);
   });
@@ -950,7 +1002,6 @@ function renderPicker() {
       saveTail(a.tail);
       renderPicker();
       calculate();
-      renderFleetList();
       closePicker();
     };
     container.appendChild(btn);
@@ -1277,6 +1328,40 @@ function updatePerf(ac) {
   out.innerHTML = html;
 }
 
+// ---------- hero live status (ported from the design mockup) ----------
+// One aircraft, one request: api.adsb.lol answers whether this hex is currently
+// transmitting. If the API refuses browser calls, the row degrades to an honest
+// "check the map" — it never guesses.
+let acStatusSeq = 0;
+function setHeroStatus(cls, text) {
+  const row = document.getElementById('hero-status');
+  row.className = 'hero-status ' + cls;
+  document.getElementById('hero-status-text').innerText = text;
+}
+async function fetchAcStatus(isTailChange) {
+  const tail = currentTail;
+  const ac = AIRCRAFT.find(a => a.tail === tail);
+  if (!ac) { setHeroStatus('off', 'PICK A TAIL TO SEE LIVE STATUS'); return; }
+  const seq = ++acStatusSeq;
+  if (isTailChange) setHeroStatus('checking', 'CHECKING LIVE STATUS…');
+  try {
+    const res = await fetch('https://api.adsb.lol/v2/hex/' + ac.hex, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    if (seq !== acStatusSeq || currentTail !== tail) return;
+    const p = (d.ac && d.ac[0]) || null;
+    if (!p) setHeroStatus('off', 'NO SIGNAL — LIKELY PARKED AT KHWO');
+    else if (p.alt_baro === 'ground') setHeroStatus('gnd', 'ON THE GROUND — TRANSMITTING (TAXIING)');
+    else {
+      const alt = typeof p.alt_baro === 'number' ? Math.round(p.alt_baro).toLocaleString() + ' FT' : '';
+      const gs = typeof p.gs === 'number' ? Math.round(p.gs) + ' KT' : '';
+      setHeroStatus('air', ['FLYING NOW', alt, gs].filter(Boolean).join(' · '));
+    }
+  } catch (e) {
+    if (seq === acStatusSeq && currentTail === tail) setHeroStatus('err', 'LIVE STATUS UNAVAILABLE — CHECK THE MAP');
+  }
+}
+
 function setNote(id, text, cls) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1311,8 +1396,13 @@ function clearAll() {
   document.getElementById('useful-load-remaining').innerText = '—';
 }
 
+let statusTail = null;
 function calculate() {
   const ac = AIRCRAFT.find(a => a.tail === currentTail);
+  if (currentTail !== statusTail) {
+    statusTail = currentTail;
+    fetchAcStatus(true);
+  }
   if (!ac) {
     clearAll();
     return;
@@ -1538,7 +1628,7 @@ async function fetchWx() {
   } catch (e) {
     wxObs = null;
     document.getElementById('wx-metar').innerText = '—';
-    renderWxStatus('err', 'Weather source unreachable — enter values manually');
+    renderWxStatus('err', 'Weather unreachable (' + (e && e.message ? e.message : 'network error') + ') — enter values manually');
   }
 }
 
@@ -1699,47 +1789,32 @@ function modelLabel(a) {
   return a.model === '152' ? 'C-152' : 'C-172 ' + a.model;
 }
 
-// Only ever called from the explicit "Load W&B" button on a fleet row.
-function selectAircraft(a) {
-  currentTail = a.tail;
-  saveTail(a.tail);
-  currentType = typeKeyOf(a);
-  renderTabs();
-  renderPicker();
-  calculate();
-  renderFleetList();
-  goTab('wb');
-}
-
+// Information only, by the founder's decision: the fleet list has no connection to
+// the W&B calculator. Changing the calculator's aircraft happens in the picker alone.
 function renderFleetList() {
-  const eyebrow = document.getElementById('fleet-eyebrow');
-  if (eyebrow) eyebrow.innerText = 'Fleet — ' + FLEET.length + ' aircraft';
   ['172', '152'].forEach(type => {
     const el = document.getElementById('list-' + type);
     el.innerHTML = '';
     if (fltType !== 'all' && type !== fltType) return;
     FLEET.filter(a => typeKeyOf(a) === type).forEach(a => {
-      const loaded = a.tail === currentTail;
       const row = document.createElement('div');
-      row.className = 'fleet-row' + (loaded ? ' selected' : '');
-      row.dataset.tail = a.tail;
-      // The row itself does nothing: tapping a tail to check whether it is flying
-      // must never rewrite the weight & balance you are in the middle of.
+      row.className = 'fleet-row';
       row.innerHTML =
         `<span class="tail">${a.tail}</span>` +
-        `<span class="detail">${modelLabel(a)}</span>` +
-        (loaded
-          ? `<span class="loaded-badge">In W&amp;B</span>`
-          : `<button type="button" class="loadbtn">Load W&amp;B</button>`);
-      const btn = row.querySelector('.loadbtn');
-      if (btn) btn.onclick = () => selectAircraft(a);
+        `<span class="detail">${modelLabel(a)}</span>`;
       el.appendChild(row);
     });
   });
 }
 
-function initFleetApp() {
+let mapLoaded = false;
+function loadMap() {
+  if (mapLoaded) return;
+  mapLoaded = true;
   document.getElementById('map').src = GLOBE_URL + '&hideSidebar&hideButtons&altitudeChart=0';
+}
+
+function initFleetApp() {
   document.getElementById('lnk-globe').href = GLOBE_URL;
   renderFleetList();
   document.querySelectorAll('#filter-type .fbtn').forEach(b => {
@@ -1750,6 +1825,23 @@ function initFleetApp() {
       renderFleetList();
     };
   });
+
+  const fleetToggle = document.getElementById('fleet-toggle');
+  document.getElementById('fleet-toggle-label').innerText = 'Fleet list — ' + FLEET.length + ' aircraft';
+  fleetToggle.onclick = () => {
+    const body = document.getElementById('fleet-body');
+    const open = body.classList.toggle('closed') === false;
+    fleetToggle.setAttribute('aria-expanded', String(open));
+    fleetToggle.querySelector('.tog').innerText = open ? 'HIDE ▴' : 'SHOW ▾';
+  };
+
+  const cgToggle = document.getElementById('cg-toggle');
+  cgToggle.onclick = () => {
+    const body = document.getElementById('cg-body');
+    const open = body.classList.toggle('closed-mobile') === false;
+    cgToggle.setAttribute('aria-expanded', String(open));
+    cgToggle.querySelector('.tog').innerText = open ? 'HIDE ▴' : 'SHOW ▾';
+  };
 }
 
 // ---------- mobile shell: one section at a time + floating pill nav ----------
@@ -1773,6 +1865,7 @@ function goTab(tab) {
   activeTab = tab;
   save('wayman-tab', tab);
   applyTabs();
+  if (tab === 'map') loadMap();
   if (mqMobile.matches) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1789,9 +1882,17 @@ function initShell() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closePicker();
   });
+  document.getElementById('hero-status').onclick = () => {
+    if (mqMobile.matches) goTab('map');
+    else document.getElementById('sec-map').scrollIntoView({ behavior: 'smooth' });
+  };
   if (mqMobile.addEventListener) mqMobile.addEventListener('change', applyTabs);
   else mqMobile.addListener(applyTabs);
   applyTabs();
+  // Desktop shows the map immediately; on mobile it waits for the Map tab
+  // (the mockup's mapVisited behavior) so phones don't pay for it up front.
+  if (!mqMobile.matches || activeTab === 'map') loadMap();
+  setInterval(() => fetchAcStatus(false), 60000);
 }
 
 initCalcApp();

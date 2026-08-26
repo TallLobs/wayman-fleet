@@ -14,6 +14,11 @@ switched from a floating pill at the bottom of the screen.
   no more ambiguous "NM") refreshed from the school's Talon (ETA) W&B table on 2026-08-24;
   N67549 kept from older data (absent from that table). Non-Cessna school aircraft
   (Arrows, twins) are deliberately excluded.
+- **Live status**: the hero shows whether the selected tail is transmitting right now —
+  "FLYING NOW · alt · speed", "ON THE GROUND — TRANSMITTING", or "NO SIGNAL — LIKELY PARKED
+  AT KHWO" — from a per-tail api.adsb.lol query, refreshed every minute. If that API refuses
+  browser calls, the row says "LIVE STATUS UNAVAILABLE — CHECK THE MAP" instead of guessing;
+  tapping the row always opens the map.
 - **Mobile**: the aircraft picker is a bottom sheet behind the hero's **Change** button;
   every control is at least a 44 px tap target and inputs are 16 px so iOS does not zoom
   on focus. The layout was built from the mockup in [design/](design/).
@@ -28,9 +33,8 @@ switched from a floating pill at the bottom of the screen.
   (`altitudeChart=0`); the embed's bottom strip (attribution/wordmark/scale) is cropped by
   a wrapper div, with OSM/CARTO credit shown in our own statusbar instead. If a tail is on
   the map it's transmitting (flying or taxiing); if not, it's parked with the master off.
-  Browsing the fleet list never touches the calculator: rows are inert, and each row
-  carries an explicit **Load W&B** button that is the only thing which switches the
-  calculator's aircraft.
+  The fleet list (collapsed by default) is information only — it has no connection to the
+  calculator. Changing the calculator's aircraft happens only in the aircraft picker.
 
 ## Deploy on GitHub Pages
 
