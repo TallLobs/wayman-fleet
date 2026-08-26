@@ -12,11 +12,11 @@ The shipped layout follows the mockup with these deliberate differences:
   so it clears the home indicator and stays reachable one-handed.
 - **Flight Conditions** puts the GPH unit inside the burn-rate field so the rate is
   never clipped.
-- **Fleet rows are inert.** The mockup's "tap a tail to load it in the calculator"
-  is gone: tapping a row does nothing, and a per-row **Load W&B** button is the only
-  way to switch the calculator's aircraft.
+- **Fleet rows are inert and fully untangled** (founder decision, superseding the
+  mockup's "tap a tail to load it in the calculator"): the list is information only;
+  the aircraft picker is the sole way to switch the calculator's aircraft.
 - **Wind and performance inputs are never written without being asked.** The METAR
   is displayed on arrival; **Auto-fill** copies it into the fields.
-- The hero's live status line and the collapsible fleet/CG sections in the mockup are
-  not implemented — there is no per-aircraft live status to show (the map is an
-  embedded globe, not our own data).
+- The hero live-status row, collapsible fleet list, collapsible CG plot (mobile),
+  map legend, and lazy map load are implemented as designed. The CG plot stays
+  always-visible on desktop, where space isn't scarce.
